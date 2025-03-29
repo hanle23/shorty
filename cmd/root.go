@@ -1,30 +1,23 @@
 /*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
+Copyright © 2025 Han Le <hanle.cs23@gmail.com>
 */
 package cmd
 
 import (
-	"os"
-
+	"fmt"
 	"github.com/spf13/cobra"
+	"os"
 )
-
-
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "shorty",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Use:   "shorty [SHORTCUT] [ARGs...]",
+	Short: "Run a shortcut or script",
+	Args:  cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		shortcut := args[0]
+		fmt.Println(shortcut)
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -47,5 +40,3 @@ func init() {
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
-
-
