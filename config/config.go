@@ -1,9 +1,12 @@
 package config
 
 import (
+	"bufio"
+	"fmt"
 	"github.com/hanle23/shorty/internal/helper"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -56,5 +59,35 @@ func SetDefaultConfigDir() error {
 		}
 	}
 	err := os.Setenv(EnvOverrideConfigDir, "")
+	return err
+}
+
+func InitFlow() error {
+	currConfigDir := Dir()
+	isExist := helper.IsExist(currConfigDir)
+	r := bufio.NewReader(os.Stdin)
+	if isExist {
+		fmt.Printf("Found an existing configuration file (%s), do you want to override this? (y/n)? ", currConfigDir)
+		ans, _ := r.ReadString('\n')
+		ans = strings.TrimSpace(ans)
+		if ans == "n" {
+			return nil
+		}
+	}
+	defaultPath := DefaultPath()
+	fmt.Printf("Do you want to override the default path? (%s) (y/n): ", defaultPath)
+	ans, _ := r.ReadString('\n')
+	ans = strings.TrimSpace(ans)
+	if ans == "n" {
+		fmt.Println("Initiating config to default path...")
+		err := SetDefaultConfigDir()
+		return err
+	}
+
+	fmt.Print("Please type the full path for the new config file: ")
+	ans, _ = r.ReadString('\n')
+	ans = strings.TrimSpace(ans)
+	fmt.Println("Initiating config to overrided path...")
+	err := SetOverrideConfigDir(ans)
 	return err
 }

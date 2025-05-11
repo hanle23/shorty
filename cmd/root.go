@@ -23,18 +23,24 @@ var (
 		Short: "Run a shortcut or script",
 		Args:  cobra.ArbitraryArgs,
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			currDir := config.Dir()
-			isExist := helper.IsExist(currDir)
-			if !isExist {
-				fmt.Println("Config file is not successfully setup, please run shorty init to fix this.")
-				os.Exit(1)
-			}
+			// Grab value from config flag
 			configDir, _ := cmd.Flags().GetString("config")
 			if configDir != "default" {
+				// Set overrided config if config is not empty
 				err := config.SetOverrideConfigDir(configDir)
 				cobra.CheckErr(err)
 				fmt.Println("Successfully change config to: ", configDir)
 			}
+			// Check for current config file from normal flow
+			currDir := config.Dir()
+			isExist := helper.IsExist(currDir)
+			// Run init flow to fix config issue if config does not exist
+			if !isExist {
+				fmt.Println("Config file was not successfully setup, init will be running now.")
+				err := config.InitFlow()
+				cobra.CheckErr(err)
+			}
+
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
