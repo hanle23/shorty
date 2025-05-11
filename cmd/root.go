@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/hanle23/shorty/config"
+	"github.com/hanle23/shorty/internal/helper"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -19,10 +21,30 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "shorty [SHORTCUT] [ARGs...]",
 		Short: "Run a shortcut or script",
-		Args:  cobra.MinimumNArgs(1),
+		Args:  cobra.ArbitraryArgs,
+		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			currDir := config.Dir()
+			isExist := helper.IsExist(currDir)
+			if !isExist {
+				fmt.Println("Config file is not successfully setup, please run shorty init to fix this.")
+				os.Exit(1)
+			}
+			configDir, _ := cmd.Flags().GetString("config")
+			if configDir != "default" {
+				err := config.SetOverrideConfigDir(configDir)
+				cobra.CheckErr(err)
+				fmt.Println("Successfully change config to: ", configDir)
+			}
+		},
 		Run: func(cmd *cobra.Command, args []string) {
+			if len(args) == 0 {
+				cmd.Help()
+				return
+			}
 			shortcut := args[0]
 			fmt.Println(shortcut)
+			//TODO: Add configuration loader here, return error if config is not loaded
+			fmt.Println("Root got called")
 		},
 	}
 )
@@ -41,9 +63,11 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 	cobra.OnInitialize(initConfig)
-
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/shorty/config.yaml)")
-
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "", "default", "config file (default is $HOME/.config/shorty/config.yaml)")
+	rootCmd.PersistentFlags().Bool("viper", true, "use Viper for configuration")
+	viper.SetDefault("author", "Han Le <hanle.cs23@gmail.com>")
+	viper.SetDefault("license", "apache")
+	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
@@ -61,10 +85,5 @@ func initConfig() {
 		viper.SetConfigType("yaml")
 		viper.SetConfigName("config")
 	}
-
 	viper.AutomaticEnv()
-
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
 }
