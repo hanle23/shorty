@@ -28,7 +28,7 @@ func UIntPrompt(prompt string, defaultValue uint32) uint32 {
 	fmt.Printf("%s, type the override value or press Enter to select the default (%d), q to exit: ", prompt, defaultValue)
 	reader := bufio.NewReader(os.Stdin)
 	input, err := reader.ReadString('\n')
-	if err != nil {
+	if input == "" && err != nil {
 		fmt.Println("Error reading input, set setting to default value: ", err)
 		return defaultValue
 	}

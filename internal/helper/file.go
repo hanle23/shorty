@@ -31,7 +31,9 @@ func CreateDir(path string) error {
 			return fmt.Errorf("failed to remove existing directory: %w", err)
 		}
 	}
-	overrideVal := UIntPrompt("%s will be created", 666)
+
+	prompt := fmt.Sprintf("%s will be created", path)
+	overrideVal := UIntPrompt(prompt, 666)
 	fileMode := os.FileMode(overrideVal)
 	err := os.MkdirAll(path, fileMode)
 	if err != nil {
