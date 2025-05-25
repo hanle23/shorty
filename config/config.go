@@ -1,13 +1,12 @@
 package config
 
 import (
-	"bufio"
 	"fmt"
-	"github.com/hanle23/shorty/internal/helper"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
+
+	"github.com/hanle23/shorty/internal/helper"
 )
 
 const (
@@ -15,6 +14,22 @@ const (
 	ConfigFileName       = "config.yml"
 	configFileDir        = "/.config/shorty"
 )
+
+type Shortcut struct {
+	PackageName string   `yaml:"package_name"`
+	Args        []string `yaml:"args"`
+	Description string   `yaml:"description"`
+}
+
+type Script struct {
+	Content     string `yaml:"content"`
+	Description string `yaml:"description,omitempty"`
+}
+
+type Config struct {
+	Shortcuts map[string]Shortcut `yaml:"shortcuts"`
+	Scripts   map[string]Script   `yaml:"scripts"`
+}
 
 var (
 	initConfigDir = new(sync.Once)
@@ -62,32 +77,33 @@ func SetDefaultConfigDir() error {
 	return err
 }
 
-func InitFlow() error {
+func InitFlow(isNewConfig bool) error {
 	currConfigDir := Dir()
-	isExist := helper.IsExist(currConfigDir)
-	r := bufio.NewReader(os.Stdin)
-	if isExist {
-		fmt.Printf("Found an existing configuration file (%s), do you want to override this? (y/n)? ", currConfigDir)
-		ans, _ := r.ReadString('\n')
-		ans = strings.TrimSpace(ans)
-		if ans == "n" {
+	if !isNewConfig {
+		shouldOverride := helper.OverrideConfigPrompt(currConfigDir)
+		if !shouldOverride {
 			return nil
 		}
 	}
+
 	defaultPath := DefaultPath()
-	fmt.Printf("Do you want to override the default path? (%s) (y/n): ", defaultPath)
-	ans, _ := r.ReadString('\n')
-	ans = strings.TrimSpace(ans)
-	if ans == "n" {
+	shouldUseDefault := helper.DefaultPathPrompt(defaultPath)
+	if shouldUseDefault {
 		fmt.Println("Initiating config to default path...")
 		err := SetDefaultConfigDir()
-		return err
+		if err != nil {
+			return err
+		}
+	} else {
+		newDir := helper.CustomNewPathPrompt(defaultPath)
+		if newDir == "" {
+			return nil
+		}
+		fmt.Println("Initiating config to overriding path...")
+		err := SetOverrideConfigDir(newDir)
+		if err != nil {
+			return err
+		}
 	}
-
-	fmt.Print("Please type the full path for the new config file: ")
-	ans, _ = r.ReadString('\n')
-	ans = strings.TrimSpace(ans)
-	fmt.Println("Initiating config to overrided path...")
-	err := SetOverrideConfigDir(ans)
-	return err
+	return nil
 }

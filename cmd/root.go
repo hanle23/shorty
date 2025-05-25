@@ -13,10 +13,13 @@ import (
 	"github.com/spf13/viper"
 )
 
+const (
+	DefaultLicense = "GPL-3.0"
+)
+
 // rootCmd represents the base command when called without any subcommands
 var (
-	cfgFile     string
-	userLicense string
+	cfgFile string
 
 	rootCmd = &cobra.Command{
 		Use:   "shorty [SHORTCUT] [ARGs...]",
@@ -26,7 +29,7 @@ var (
 			// Grab value from config flag
 			configDir, _ := cmd.Flags().GetString("config")
 			if configDir != "default" {
-				// Set overrided config if config is not empty
+				// Set overrided config path if user add arg to config flag
 				err := config.SetOverrideConfigDir(configDir)
 				cobra.CheckErr(err)
 				fmt.Println("Successfully change config to: ", configDir)
@@ -36,8 +39,8 @@ var (
 			isExist := helper.IsExist(currDir)
 			// Run init flow to fix config issue if config does not exist
 			if !isExist {
-				fmt.Println("Config file was not successfully setup, init will be running now.")
-				err := config.InitFlow()
+				fmt.Println("Config file was not setup successfully, init will be running now.")
+				err := config.InitFlow(true)
 				cobra.CheckErr(err)
 			}
 
@@ -72,7 +75,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "", "default", "config file (default is $HOME/.config/shorty/config.yaml)")
 	rootCmd.PersistentFlags().Bool("viper", true, "use Viper for configuration")
 	viper.SetDefault("author", "Han Le <hanle.cs23@gmail.com>")
-	viper.SetDefault("license", "apache")
+	viper.SetDefault("license", DefaultLicense)
 	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

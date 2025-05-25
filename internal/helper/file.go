@@ -19,13 +19,18 @@ func GetHomeDir() string {
 
 func IsExist(path string) bool {
 	_, err := os.Stat(path)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func CreateDir(path string) error {
+	isExist := IsExist(path)
+	allowOverride := OverrideConfigPrompt(path)
+	if allowOverride && isExist {
+		err := os.RemoveAll(path)
+		if err != nil {
+			return fmt.Errorf("failed to remove existing directory: %w", err)
+		}
+	}
 	overrideVal := UIntPrompt("%s will be created", 666)
 	fileMode := os.FileMode(overrideVal)
 	err := os.MkdirAll(path, fileMode)
