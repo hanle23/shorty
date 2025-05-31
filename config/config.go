@@ -54,7 +54,7 @@ func DefaultPath() string {
 func SetOverrideConfigDir(dir string) error {
 	isExist := helper.IsExist(dir)
 	if !isExist {
-		err := helper.CreateDir(dir)
+		err := helper.CreateDir(dir, false)
 		if err != nil {
 			return err
 		}
@@ -68,7 +68,7 @@ func SetDefaultConfigDir() error {
 	dir := DefaultPath()
 	isExist := helper.IsExist(dir)
 	if !isExist {
-		err := helper.CreateDir(dir)
+		err := helper.CreateDir(dir, false)
 		if err != nil {
 			return err
 		}

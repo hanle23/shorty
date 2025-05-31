@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/user"
 	"runtime"
+	"syscall"
 )
 
 func GetHomeDir() string {
@@ -22,22 +23,38 @@ func IsExist(path string) bool {
 	return err == nil
 }
 
-func CreateDir(path string) error {
+func CreateDir(path string, bypassPrompt bool) error {
 	isExist := IsExist(path)
-	allowOverride := OverrideConfigPrompt(path)
-	if allowOverride && isExist {
-		err := os.RemoveAll(path)
-		if err != nil {
-			return fmt.Errorf("failed to remove existing directory: %w", err)
+	fileModeVal := uint32(0755)
+	if !bypassPrompt {
+		allowOverride := OverrideConfigPrompt(path)
+		if allowOverride && isExist {
+			err := os.RemoveAll(path)
+			if err != nil {
+				return fmt.Errorf("failed to remove existing directory: %w", err)
+			}
 		}
+		prompt := fmt.Sprintf("%s will be created", path)
+		fileModeVal = UIntPrompt(prompt, fileModeVal)
 	}
+	fileMode := os.FileMode(fileModeVal)
 
-	prompt := fmt.Sprintf("%s will be created", path)
-	overrideVal := UIntPrompt(prompt, 666)
-	fileMode := os.FileMode(overrideVal)
+	// Save current umask
+	oldMask := syscall.Umask(0)
+	// Restore umask when function returns
+	defer syscall.Umask(oldMask)
+
 	err := os.MkdirAll(path, fileMode)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		return fmt.Errorf("failed to stat directory: %w", err)
+	}
+	if info.Mode().Perm() != fileMode.Perm() {
+		return fmt.Errorf("directory permissions mismatch. got: %v, expected: %v", info.Mode().Perm(), fileMode)
 	}
 	fmt.Printf("Successfully create file %s\n", path)
 	return nil

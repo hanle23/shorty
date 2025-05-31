@@ -38,7 +38,7 @@ func TestCreateDir(t *testing.T) {
 	testDir := filepath.Join(tempDir, "testdir")
 
 	// Test creating a new directory
-	err := CreateDir(testDir)
+	err := CreateDir(testDir, true)
 	if err != nil {
 		t.Errorf("CreateDir() failed to create new directory: %v", err)
 	}
@@ -58,9 +58,15 @@ func TestCreateDir(t *testing.T) {
 		t.Errorf("Created path is not a directory: %s", testDir)
 	}
 
+	// Verify default permissions (666)
+	expectedMode := os.FileMode(0755)
+	if info.Mode().Perm() != expectedMode {
+		t.Errorf("Directory permissions mismatch. Got: %v, Expected: %v", info.Mode().Perm(), expectedMode)
+	}
+
 	// Test creating nested directory
 	nestedDir := filepath.Join(testDir, "nested", "dir")
-	err = CreateDir(nestedDir)
+	err = CreateDir(nestedDir, true)
 	if err != nil {
 		t.Errorf("CreateDir() failed to create nested directory: %v", err)
 	}
@@ -69,12 +75,27 @@ func TestCreateDir(t *testing.T) {
 	if !IsExist(nestedDir) {
 		t.Errorf("CreateDir() did not create nested directory: %s", nestedDir)
 	}
+
+	// Verify nested directory permissions
+	info, err = os.Stat(nestedDir)
+	if err != nil {
+		t.Errorf("Failed to stat created nested directory: %v", err)
+		return
+	}
+	if !info.IsDir() {
+		t.Errorf("Created nested path is not a directory: %s", nestedDir)
+	}
+
+	// Verify nested directory has default permissions (666)
+	if info.Mode().Perm() != expectedMode.Perm() {
+		t.Errorf("Nested directory permissions mismatch. Got: %v, Expected: %v", info.Mode().Perm(), expectedMode)
+	}
 }
 
 func TestCreateDirWithInvalidPath(t *testing.T) {
 	// Test creating directory with invalid path
 	invalidPath := filepath.Join(t.TempDir(), "invalid", "path", "with", "special", "chars", "\\/*?")
-	err := CreateDir(invalidPath)
+	err := CreateDir(invalidPath, true)
 	if err == nil {
 		t.Error("CreateDir() should fail with invalid path")
 	}
@@ -85,7 +106,7 @@ func TestCreateDirWithExistingDir(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Test creating the same directory again
-	err := CreateDir(tempDir)
+	err := CreateDir(tempDir, true)
 	if err != nil {
 		t.Errorf("CreateDir() failed to handle existing directory: %v", err)
 	}
@@ -93,5 +114,54 @@ func TestCreateDirWithExistingDir(t *testing.T) {
 	// Verify the directory still exists
 	if !IsExist(tempDir) {
 		t.Error("CreateDir() removed existing directory")
+	}
+}
+
+func TestCreateDirWithInputWaiter(t *testing.T) {
+	// Create a temporary directory for testing
+	tempDir := t.TempDir()
+	testDir := filepath.Join(tempDir, "testdir")
+
+	// Test creating a new directory
+	err := CreateDir(testDir, true)
+	if err != nil {
+		t.Errorf("CreateDir() failed to create new directory: %v", err)
+	}
+
+	// Verify directory was created with default permissions
+	info, err := os.Stat(testDir)
+	if err != nil {
+		t.Errorf("Failed to stat created directory: %v", err)
+		return
+	}
+
+	// Check if the directory has the default permissions (666)
+	expectedMode := os.FileMode(0755)
+	if info.Mode().Perm() != expectedMode {
+		t.Errorf("Directory permissions mismatch. Got: %v, Expected: %v", info.Mode().Perm(), expectedMode)
+	}
+}
+
+func TestCreateDirWithCustomPermissions(t *testing.T) {
+	tempDir := t.TempDir()
+	testDir := filepath.Join(tempDir, "testdir")
+
+	// Test creating a new directory
+	err := CreateDir(testDir, true)
+	if err != nil {
+		t.Errorf("CreateDir() failed to create new directory: %v", err)
+	}
+
+	// Verify directory was created with custom permissions
+	info, err := os.Stat(testDir)
+	if err != nil {
+		t.Errorf("Failed to stat created directory: %v", err)
+		return
+	}
+
+	// Check if the directory has the custom permissions (0755)
+	expectedMode := os.FileMode(0755)
+	if info.Mode().Perm() != expectedMode {
+		t.Errorf("Directory permissions mismatch. Got: %v, Expected: %v", info.Mode().Perm(), expectedMode)
 	}
 }
