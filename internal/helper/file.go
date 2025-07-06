@@ -8,6 +8,10 @@ import (
 	"syscall"
 )
 
+const (
+	fileModeVal = uint32(0755)
+)
+
 func GetHomeDir() string {
 	home, _ := os.UserHomeDir()
 	if home == "" && runtime.GOOS != "windows" {
@@ -23,6 +27,7 @@ func IsExist(path string) bool {
 	return err == nil
 }
 
+// TODO: Maybe display the previous override file mode and ask if the user wants to reuse this setting
 func CreateDir(path string, bypassPrompt bool) error {
 	isExist := IsExist(path)
 	fileModeVal := uint32(0755)
