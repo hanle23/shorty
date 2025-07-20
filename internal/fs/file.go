@@ -1,7 +1,8 @@
-package helper
+package fs
 
 import (
 	"fmt"
+	"github.com/hanle23/shorty/internal/io"
 	"os"
 	"os/user"
 	"runtime"
@@ -12,14 +13,19 @@ const (
 	fileModeVal = uint32(0755)
 )
 
-func GetHomeDir() string {
-	home, _ := os.UserHomeDir()
-	if home == "" && runtime.GOOS != "windows" {
-		if u, err := user.Current(); err == nil {
-			return u.HomeDir
-		}
+func GetConfigHomeDir() (string, error) {
+	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
+		return xdg, nil
 	}
-	return home
+	home, _ := os.UserHomeDir()
+	if home != "" && runtime.GOOS == "windows" {
+		return home, nil
+	}
+	u, err := user.Current()
+	if err != nil {
+		return u.HomeDir, err
+	}
+	return "", err
 }
 
 func IsExist(path string) bool {
@@ -32,7 +38,7 @@ func CreateDir(path string, bypassPrompt bool) error {
 	isExist := IsExist(path)
 	fileModeVal := uint32(0755)
 	if !bypassPrompt {
-		allowOverride := OverrideConfigPrompt(path)
+		allowOverride := io.OverrideConfigPrompt(path)
 		if allowOverride && isExist {
 			err := os.RemoveAll(path)
 			if err != nil {
@@ -40,7 +46,7 @@ func CreateDir(path string, bypassPrompt bool) error {
 			}
 		}
 		prompt := fmt.Sprintf("%s will be created", path)
-		fileModeVal = UIntPrompt(prompt, fileModeVal)
+		fileModeVal = io.UIntPrompt(prompt, fileModeVal)
 	}
 	fileMode := os.FileMode(fileModeVal)
 

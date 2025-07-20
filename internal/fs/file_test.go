@@ -1,19 +1,23 @@
-package helper
+package fs_test
 
 import (
+	"github.com/hanle23/shorty/internal/fs"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
 func TestGetHomeDir(t *testing.T) {
-	home := GetHomeDir()
+	home, err := fs.GetConfigHomeDir()
+	if err != nil {
+		t.Error(err)
+	}
 	if home == "" {
 		t.Error("GetHomeDir returned empty string")
 	}
 
 	// Test that the directory exists
-	if !IsExist(home) {
+	if !fs.IsExist(home) {
 		t.Errorf("Home directory %s does not exist", home)
 	}
 }
@@ -21,13 +25,13 @@ func TestGetHomeDir(t *testing.T) {
 func TestIsExist(t *testing.T) {
 	// Test with existing directory
 	tempDir := t.TempDir()
-	if !IsExist(tempDir) {
+	if !fs.IsExist(tempDir) {
 		t.Errorf("IsExist returned false for existing directory: %s", tempDir)
 	}
 
 	// Test with non-existing directory
 	nonExistentDir := filepath.Join(tempDir, "nonexistent")
-	if IsExist(nonExistentDir) {
+	if fs.IsExist(nonExistentDir) {
 		t.Errorf("IsExist returned true for non-existing directory: %s", nonExistentDir)
 	}
 }
@@ -38,13 +42,13 @@ func TestCreateDir(t *testing.T) {
 	testDir := filepath.Join(tempDir, "testdir")
 
 	// Test creating a new directory
-	err := CreateDir(testDir, true)
+	err := fs.CreateDir(testDir, true)
 	if err != nil {
 		t.Errorf("CreateDir() failed to create new directory: %v", err)
 	}
 
 	// Verify directory was created
-	if !IsExist(testDir) {
+	if !fs.IsExist(testDir) {
 		t.Errorf("CreateDir() did not create directory: %s", testDir)
 	}
 
@@ -66,13 +70,13 @@ func TestCreateDir(t *testing.T) {
 
 	// Test creating nested directory
 	nestedDir := filepath.Join(testDir, "nested", "dir")
-	err = CreateDir(nestedDir, true)
+	err = fs.CreateDir(nestedDir, true)
 	if err != nil {
 		t.Errorf("CreateDir() failed to create nested directory: %v", err)
 	}
 
 	// Verify nested directory was created
-	if !IsExist(nestedDir) {
+	if !fs.IsExist(nestedDir) {
 		t.Errorf("CreateDir() did not create nested directory: %s", nestedDir)
 	}
 
@@ -95,7 +99,7 @@ func TestCreateDir(t *testing.T) {
 func TestCreateDirWithInvalidPath(t *testing.T) {
 	// Test creating directory with invalid path
 	invalidPath := filepath.Join(t.TempDir(), "invalid", "path", "with", "special", "chars", "\\/*?")
-	err := CreateDir(invalidPath, true)
+	err := fs.CreateDir(invalidPath, true)
 	if err == nil {
 		t.Error("CreateDir() should fail with invalid path")
 	}
@@ -106,13 +110,13 @@ func TestCreateDirWithExistingDir(t *testing.T) {
 	tempDir := t.TempDir()
 
 	// Test creating the same directory again
-	err := CreateDir(tempDir, true)
+	err := fs.CreateDir(tempDir, true)
 	if err != nil {
 		t.Errorf("CreateDir() failed to handle existing directory: %v", err)
 	}
 
 	// Verify the directory still exists
-	if !IsExist(tempDir) {
+	if !fs.IsExist(tempDir) {
 		t.Error("CreateDir() removed existing directory")
 	}
 }
@@ -123,7 +127,7 @@ func TestCreateDirWithInputWaiter(t *testing.T) {
 	testDir := filepath.Join(tempDir, "testdir")
 
 	// Test creating a new directory
-	err := CreateDir(testDir, true)
+	err := fs.CreateDir(testDir, true)
 	if err != nil {
 		t.Errorf("CreateDir() failed to create new directory: %v", err)
 	}
@@ -147,7 +151,7 @@ func TestCreateDirWithCustomPermissions(t *testing.T) {
 	testDir := filepath.Join(tempDir, "testdir")
 
 	// Test creating a new directory
-	err := CreateDir(testDir, true)
+	err := fs.CreateDir(testDir, true)
 	if err != nil {
 		t.Errorf("CreateDir() failed to create new directory: %v", err)
 	}

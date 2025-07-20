@@ -2,13 +2,13 @@ package config
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"github.com/goccy/go-yaml"
-	"github.com/hanle23/shorty/internal/helper"
+	"github.com/hanle23/shorty/internal/fs"
+	"github.com/hanle23/shorty/internal/io"
 )
 
 const (
@@ -54,22 +54,29 @@ func Dir() string {
 	initConfigDir.Do(func() {
 		configDir = os.Getenv(EnvOverrideConfigDir)
 		if configDir == "" {
-			configDir = filepath.Join(helper.GetHomeDir(), configFileDir)
+			homeDir, err := fs.GetConfigHomeDir()
+			if err == nil {
+				configDir = filepath.Join(homeDir, configFileDir)
+			}
 		}
 	})
 	return configDir
 }
 
 func DefaultPath() string {
-	dir := filepath.Join(helper.GetHomeDir(), configFileDir)
+	homeDir, err := fs.GetConfigHomeDir()
+	if err != nil {
+		return ""
+	}
+	dir := filepath.Join(homeDir, configFileDir)
 	return dir
 }
 
 // TODO: Currently not persistant, need to either make a .env file if this is being set
 func SetOverrideConfigDir(dir string) error {
-	isExist := helper.IsExist(dir)
+	isExist := fs.IsExist(dir)
 	if !isExist {
-		err := helper.CreateDir(dir, false)
+		err := fs.CreateDir(dir, false)
 		if err != nil {
 			return err
 		}
@@ -82,9 +89,9 @@ func SetOverrideConfigDir(dir string) error {
 // TODO: Currently not persistant, need to either make a .env file if this is being set
 func SetDefaultConfigDir() error {
 	dir := DefaultPath()
-	isExist := helper.IsExist(dir)
+	isExist := fs.IsExist(dir)
 	if !isExist {
-		err := helper.CreateDir(dir, false)
+		err := fs.CreateDir(dir, false)
 		if err != nil {
 			return err
 		}
@@ -96,14 +103,18 @@ func SetDefaultConfigDir() error {
 func InitFlow(isNewConfig bool) error {
 	currConfigDir := Dir()
 	if !isNewConfig {
-		shouldOverride := helper.OverrideConfigPrompt(currConfigDir)
-		if !shouldOverride {
-			return nil
+		isExist := fs.IsExist(currConfigDir)
+		if isExist {
+			shouldOverride := io.OverrideConfigPrompt(currConfigDir)
+			if !shouldOverride {
+				return nil
+			}
+
 		}
 	}
 
 	defaultPath := DefaultPath()
-	shouldUseDefault := helper.DefaultPathPrompt(defaultPath)
+	shouldUseDefault := io.DefaultPathPrompt(defaultPath)
 	if shouldUseDefault {
 		fmt.Println("Initiating config to default path...")
 		err := SetDefaultConfigDir()
@@ -111,7 +122,7 @@ func InitFlow(isNewConfig bool) error {
 			return err
 		}
 	} else {
-		newDir := helper.CustomNewPathPrompt(defaultPath)
+		newDir := io.CustomNewPathPrompt(defaultPath)
 		if newDir == "" {
 			return nil
 		}
@@ -127,7 +138,7 @@ func InitFlow(isNewConfig bool) error {
 func GetConfig() *Config {
 	once.Do(func() {
 		path := Dir()
-		// Load config into instance
+		//TODO: Load config into instance
 		fmt.Println(path)
 
 		instance = &Config{}

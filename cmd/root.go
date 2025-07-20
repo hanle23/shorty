@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hanle23/shorty/config"
-	"github.com/hanle23/shorty/internal/helper"
+	"github.com/hanle23/shorty/internal/config"
+	"github.com/hanle23/shorty/internal/fs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -36,7 +36,7 @@ var (
 			}
 			// Check for current config file from normal flow
 			currDir := config.Dir()
-			isExist := helper.IsExist(currDir)
+			isExist := fs.IsExist(currDir)
 			// Run init flow to fix config issue if config does not exist
 			if !isExist {
 				fmt.Println("Config file was not setup successfully, init will be running now.")
@@ -76,6 +76,7 @@ func init() {
 	rootCmd.PersistentFlags().Bool("viper", true, "use Viper for configuration")
 	viper.SetDefault("author", "Han Le <hanle.cs23@gmail.com>")
 	viper.SetDefault("license", DefaultLicense)
+	// TODO: Need to add a flag to bypass persistant prerun for debugging
 	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

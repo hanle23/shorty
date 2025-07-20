@@ -1,4 +1,4 @@
-package helper
+package strings
 
 func Split(s string, sep string) []string {
 	result := make([]string, 0)

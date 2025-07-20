@@ -6,7 +6,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/hanle23/shorty/config"
+	"github.com/hanle23/shorty/internal/config"
 
 	"github.com/spf13/cobra"
 )

@@ -1,4 +1,4 @@
-package helper
+package io
 
 import (
 	"bufio"
@@ -48,11 +48,7 @@ func UIntPrompt(prompt string, defaultValue uint32) uint32 {
 // If the user does not want to override, it will return false
 // If the user wants to override, it will return true
 func OverrideConfigPrompt(path string) bool {
-	isExist := IsExist(path)
 	r := bufio.NewReader(os.Stdin)
-	if !isExist {
-		return false
-	}
 	fmt.Printf("Found an existing file or directory (%s), do you want to override this? (y/n)? ", path)
 	ans, _ := r.ReadString('\n')
 	ans = strings.TrimSpace(ans)
@@ -64,7 +60,7 @@ func OverrideConfigPrompt(path string) bool {
 // If the user wants to use the default path, it will return true
 func DefaultPathPrompt(defaultPath string) bool {
 	r := bufio.NewReader(os.Stdin)
-	fmt.Printf("Do you want to usethe default path? (%s) (y/n): ", defaultPath)
+	fmt.Printf("Do you want to use the default path? (%s) (y/n): ", defaultPath)
 	ans, _ := r.ReadString('\n')
 	ans = strings.TrimSpace(ans)
 	return ans == "y"

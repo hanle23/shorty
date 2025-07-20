@@ -1,6 +1,7 @@
-package helper
+package strings_test
 
 import (
+	"github.com/hanle23/shorty/internal/strings"
 	"reflect"
 	"testing"
 )
@@ -17,7 +18,7 @@ func TestSplit(t *testing.T) {
 		{input: "/path/to/file/", sep: "/", want: []string{"path", "to", "file"}},
 	}
 	for _, test := range tests {
-		got := Split(test.input, test.sep)
+		got := strings.Split(test.input, test.sep)
 		if !reflect.DeepEqual(got, test.want) {
 			t.Errorf("Split(%q, %q) = %q, want %q", test.input, test.sep, got, test.want)
 		}
