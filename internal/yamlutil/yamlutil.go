@@ -1,0 +1,13 @@
+package yamlutil
+
+import (
+	"github.com/goccy/go-yaml"
+)
+
+func ObjectToYaml(object Config) ([]byte, error) {
+	bytes, err := yaml.Marshal(object)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}

@@ -25,26 +25,6 @@ var (
 		Use:   "shorty [SHORTCUT] [ARGs...]",
 		Short: "Run a shortcut or script",
 		Args:  cobra.ArbitraryArgs,
-		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			// Grab value from config flag
-			configDir, _ := cmd.Flags().GetString("config")
-			if configDir != "default" {
-				// Set overrided config path if user add arg to config flag
-				err := config.SetOverrideConfigDir(configDir)
-				cobra.CheckErr(err)
-				fmt.Println("Successfully change config to: ", configDir)
-			}
-			// Check for current config file from normal flow
-			currDir := config.Dir()
-			isExist := fs.IsExist(currDir)
-			// Run init flow to fix config issue if config does not exist
-			if !isExist {
-				fmt.Println("Config file was not setup successfully, init will be running now.")
-				err := config.InitFlow(true)
-				cobra.CheckErr(err)
-			}
-
-		},
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
 				cmd.Help()

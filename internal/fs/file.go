@@ -13,7 +13,7 @@ const (
 	fileModeVal = uint32(0755)
 )
 
-func GetConfigHomeDir() (string, error) {
+func GetHomeDir() (string, error) {
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
 		return xdg, nil
 	}

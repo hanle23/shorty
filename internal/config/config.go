@@ -2,19 +2,19 @@ package config
 
 import (
 	"fmt"
+	"github.com/goccy/go-yaml"
 	"os"
 	"path/filepath"
 	"sync"
 
-	"github.com/goccy/go-yaml"
 	"github.com/hanle23/shorty/internal/fs"
 	"github.com/hanle23/shorty/internal/io"
 )
 
 const (
-	EnvOverrideConfigDir = "SHORTY_CONFIG"
-	ConfigFileName       = "config.yml"
-	configFileDir        = "/.config/shorty"
+	ConfigFileName    = "config.yml"
+	ShortcutsFileName = "shortcuts.yml"
+	DefaultFileDir    = "/.config/shorty"
 )
 
 // All shortcut name needs to be unique
@@ -37,43 +37,103 @@ type Script struct {
 	Description  string `yaml:"description,omitempty"`
 }
 
-type Config struct {
+type ShortcutFile struct {
 	Shortcuts map[string]Shortcut `yaml:"shortcuts"`
 	Scripts   map[string]Script   `yaml:"scripts"`
+}
+
+type ConfigFile struct {
+	ShortcutPath string `yaml:"shortcut_path"`
 }
 
 var (
 	initConfigDir = new(sync.Once)
 	configDir     string
-	instance      *Config
+	instance      *ShortcutFile
 	once          sync.Once
 	mu            sync.RWMutex
 )
 
-func Dir() string {
-	initConfigDir.Do(func() {
-		configDir = os.Getenv(EnvOverrideConfigDir)
-		if configDir == "" {
-			homeDir, err := fs.GetConfigHomeDir()
-			if err == nil {
-				configDir = filepath.Join(homeDir, configFileDir)
-			}
-		}
+func GetShortcutFile() *ShortcutFile {
+	once.Do(func() {
+		path := GetShortcutDir()
+		//TODO: Load config into instance
+		fmt.Println(path)
+
+		instance = &ShortcutFile{}
 	})
-	return configDir
+	return instance
 }
 
-func DefaultPath() string {
-	homeDir, err := fs.GetConfigHomeDir()
+func GetEmptyShortcutObject() *ShortcutFile {
+	newShortcutObject := &ShortcutFile{
+		Scripts:   make(map[string]Script),
+		Shortcuts: make(map[string]Shortcut),
+	}
+	return newShortcutObject
+}
+
+func GetEmptyConfigObject() (*ConfigFile, error) {
+	defaultPath, err := GetDefaultPath()
 	if err != nil {
-		return ""
+		return nil, err
 	}
-	dir := filepath.Join(homeDir, configFileDir)
-	return dir
+	path := filepath.Join(defaultPath, ConfigFileName)
+	newConfigObject := &ConfigFile{
+		ShortcutPath: path,
+	}
+	return newConfigObject, nil
 }
 
-// TODO: Currently not persistant, need to either make a .env file if this is being set
-func SetOverrideConfigDir(dir string) error {
+func LoadConfig() (*ConfigFile, error) {
+	path, err := GetDefaultPath()
+	if err != nil {
+		return nil, err
+	}
+	path = filepath.Join(path, ConfigFileName)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config: %w", err)
+	}
+
+	var cfg ConfigFile
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse config: %w", err)
+	}
+
+	return &cfg, nil
+}
+
+// func GetEmptyShortcutYAML() ([]byte, error) {
+//	newShortcut := GetEmptyShortcutObject()
+//	bytes, err := yamlutil.ObjectToYaml(*newShortcut)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return bytes, nil
+//}
+
+// Get default path for shortcut
+func GetDefaultPath() (string, error) {
+	homeDir, err := fs.GetHomeDir()
+	if err != nil {
+		return "", err
+	}
+	dir := filepath.Join(homeDir, DefaultFileDir)
+	return dir, nil
+}
+
+// Get current shortcut path from config if was overrided
+func GetShortcutDir() (string, error) {
+	initConfigDir.Do(func() {
+		// TODO: Need to load config file here and get from config instead of env
+		// TODO: Need to also rethink on how to write this function
+	})
+	return configDir, nil
+}
+
+// TODO: Currently not persistant, need to set it into config file
+func SetOverrideShortcutDir(dir string) error {
 	isExist := fs.IsExist(dir)
 	if !isExist {
 		err := fs.CreateDir(dir, false)
@@ -81,14 +141,17 @@ func SetOverrideConfigDir(dir string) error {
 			return err
 		}
 	}
-	err := os.Setenv(EnvOverrideConfigDir, dir)
+	// TODO: Need to load or create config object here and append, then write it into config file
 	return err
 
 }
 
 // TODO: Currently not persistant, need to either make a .env file if this is being set
-func SetDefaultConfigDir() error {
-	dir := DefaultPath()
+func SetDefaultShortcutDir() error {
+	dir, err := GetDefaultPath()
+	if err != nil {
+		return err
+	}
 	isExist := fs.IsExist(dir)
 	if !isExist {
 		err := fs.CreateDir(dir, false)
@@ -96,28 +159,33 @@ func SetDefaultConfigDir() error {
 			return err
 		}
 	}
-	err := os.Setenv(EnvOverrideConfigDir, "")
-	return err
+	// TODO: Need to load or create config object here and append, then write it into config file
+	return nil
 }
 
-func InitFlow(isNewConfig bool) error {
-	currConfigDir := Dir()
-	if !isNewConfig {
-		isExist := fs.IsExist(currConfigDir)
+func InitShortcut(isNewShortcut bool) error {
+	currShortcutDir, err := GetShortcutDir()
+	if err != nil {
+		return err
+	}
+	if !isNewShortcut {
+		isExist := fs.IsExist(currShortcutDir)
 		if isExist {
-			shouldOverride := io.OverrideConfigPrompt(currConfigDir)
+			shouldOverride := io.OverrideConfigPrompt(currShortcutDir)
 			if !shouldOverride {
 				return nil
 			}
-
 		}
 	}
 
-	defaultPath := DefaultPath()
+	defaultPath, err := GetDefaultPath()
+	if err != nil {
+		return err
+	}
 	shouldUseDefault := io.DefaultPathPrompt(defaultPath)
 	if shouldUseDefault {
 		fmt.Println("Initiating config to default path...")
-		err := SetDefaultConfigDir()
+		err := SetDefaultShortcutDir()
 		if err != nil {
 			return err
 		}
@@ -126,47 +194,11 @@ func InitFlow(isNewConfig bool) error {
 		if newDir == "" {
 			return nil
 		}
-		fmt.Println("Initiating config to overriding path...")
-		err := SetOverrideConfigDir(newDir)
+		fmt.Println("Setting new path...")
+		err := SetOverrideShortcutDir(newDir)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-func GetConfig() *Config {
-	once.Do(func() {
-		path := Dir()
-		//TODO: Load config into instance
-		fmt.Println(path)
-
-		instance = &Config{}
-	})
-	return instance
-}
-
-func GetEmptyConfigYAML() ([]byte, error) {
-	newConfig := CreateEmptyConfigObject()
-	bytes, err := ObjectToYaml(*newConfig)
-	if err != nil {
-		return nil, err
-	}
-	return bytes, nil
-}
-
-func ObjectToYaml(object Config) ([]byte, error) {
-	bytes, err := yaml.Marshal(object)
-	if err != nil {
-		return nil, err
-	}
-	return bytes, nil
-}
-
-func CreateEmptyConfigObject() *Config {
-	newObjectConfig := &Config{
-		Scripts:   make(map[string]Script),
-		Shortcuts: make(map[string]Shortcut),
-	}
-	return newObjectConfig
 }
