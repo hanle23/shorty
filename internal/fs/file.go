@@ -2,28 +2,40 @@ package fs
 
 import (
 	"fmt"
-	"github.com/hanle23/shorty/internal/io"
 	"os"
 	"os/user"
 	"runtime"
 	"syscall"
+
+	"github.com/hanle23/shorty/internal/context"
+	"github.com/hanle23/shorty/internal/io"
 )
 
-const (
-	fileModeVal = uint32(0755)
-)
+//const (
+//	fileModeVal = uint32(0755)
+//)
 
 func GetHomeDir() (string, error) {
+	c := context.GetContext()
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
+		if c.Debug {
+			fmt.Println("Getting env from XDG_CONFIG_HOME")
+		}
 		return xdg, nil
 	}
 	home, _ := os.UserHomeDir()
-	if home != "" && runtime.GOOS == "windows" {
+	if home != "" && (runtime.GOOS == "windows" || runtime.GOOS == "darwin") {
+		if c.Debug {
+			fmt.Println("Getting env from os.UserHomeDir()")
+		}
 		return home, nil
 	}
 	u, err := user.Current()
 	if err != nil {
 		return u.HomeDir, err
+	}
+	if c.Debug {
+		fmt.Println("Getting env from user.Current()")
 	}
 	return "", err
 }

@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	ConfigFileName    = "config.yml"
-	ShortcutsFileName = "shortcuts.yml"
+	ConfigFileName    = "config.yaml"
+	ShortcutsFileName = "shortcuts.yaml"
 	DefaultFileDir    = "/.config/shorty"
 )
 
@@ -22,10 +22,10 @@ const (
 // Args is all the arguments that the user wants to include after package name
 // Description is the string description of the shortcut during list command
 type Shortcut struct {
-	Shortcut_name string `yaml:"shortcut_name"`
-	Package_name  string `yaml:"package_name"`
-	Args          string `yaml:"args"`
-	Description   string `yaml:"description,omitempty"`
+	Shortcut_name string   `yaml:"shortcut_name"`
+	Package_name  string   `yaml:"package_name"`
+	Args          []string `yaml:"args"`
+	Description   string   `yaml:"description,omitempty"`
 }
 
 // All package name needs to be unique
@@ -47,23 +47,13 @@ type ConfigFile struct {
 }
 
 var (
-	initConfigDir = new(sync.Once)
-	configDir     string
-	instance      *ShortcutFile
-	once          sync.Once
-	mu            sync.RWMutex
+	initConfigDir    = new(sync.Once)
+	configDir        string
+	shortcutInstance *ShortcutFile
+	configInstance   *ShortcutFile
+	once             sync.Once
+	mu               sync.RWMutex
 )
-
-func GetShortcutFile() *ShortcutFile {
-	once.Do(func() {
-		path := GetShortcutDir()
-		//TODO: Load config into instance
-		fmt.Println(path)
-
-		instance = &ShortcutFile{}
-	})
-	return instance
-}
 
 func GetEmptyShortcutObject() *ShortcutFile {
 	newShortcutObject := &ShortcutFile{
@@ -71,6 +61,17 @@ func GetEmptyShortcutObject() *ShortcutFile {
 		Shortcuts: make(map[string]Shortcut),
 	}
 	return newShortcutObject
+}
+
+func GetShortcutPath() (string, error) {
+	config, err := LoadConfig()
+	if err != nil {
+		return "", err
+	}
+	if config.ShortcutPath != "" {
+		return config.ShortcutPath, nil
+	}
+	return "", nil
 }
 
 func GetEmptyConfigObject() (*ConfigFile, error) {
@@ -99,6 +100,24 @@ func LoadConfig() (*ConfigFile, error) {
 	var cfg ConfigFile
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
+	}
+
+	return &cfg, nil
+}
+
+func LoadShortcut() (*ShortcutFile, error) {
+	path, err := GetShortcutPath()
+	if err != nil {
+		return nil, err
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read shortcut: %w", err)
+	}
+
+	var cfg ShortcutFile
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse shortcut: %w", err)
 	}
 
 	return &cfg, nil
@@ -142,8 +161,7 @@ func SetOverrideShortcutDir(dir string) error {
 		}
 	}
 	// TODO: Need to load or create config object here and append, then write it into config file
-	return err
-
+	return nil
 }
 
 // TODO: Currently not persistant, need to either make a .env file if this is being set

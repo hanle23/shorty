@@ -4,11 +4,6 @@ Copyright © 2025 Han Le <hanle.cs23@gmail.com>
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/hanle23/shorty/internal/config"
-	"github.com/hanle23/shorty/internal/fs"
-
 	"github.com/spf13/cobra"
 )
 
@@ -16,20 +11,9 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize config or reset config to original state.",
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-
-		currShortcutDir := Dir()
-		isExist := fs.IsExist(currShortcutDir)
-
-	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// err := config.InitFlow(true)
 		// cobra.CheckErr(err)
-		bytes, err := config.GetEmptyConfigYAML()
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println(string(bytes))
 	},
 }
 

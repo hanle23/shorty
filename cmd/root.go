@@ -7,8 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/hanle23/shorty/internal/config"
-	"github.com/hanle23/shorty/internal/fs"
+	"github.com/hanle23/shorty/internal/context"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -20,6 +19,7 @@ const (
 // rootCmd represents the base command when called without any subcommands
 var (
 	cfgFile string
+	debug   bool
 
 	rootCmd = &cobra.Command{
 		Use:   "shorty [SHORTCUT] [ARGs...]",
@@ -51,13 +51,15 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initConfig, initializeGlobalContextFromFlags)
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "", "default", "config file (default is $HOME/.config/shorty/config.yaml)")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Set debug mode")
 	rootCmd.PersistentFlags().Bool("viper", true, "use Viper for configuration")
 	viper.SetDefault("author", "Han Le <hanle.cs23@gmail.com>")
 	viper.SetDefault("license", DefaultLicense)
-	// TODO: Need to add a flag to bypass persistant prerun for debugging
 	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
+	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
@@ -76,4 +78,11 @@ func initConfig() {
 		viper.SetConfigName("config")
 	}
 	viper.AutomaticEnv()
+}
+
+// initializeGlobalContextFromFlags sets up the global context with parsed flag values
+// This runs after flags are parsed but before command execution
+func initializeGlobalContextFromFlags() {
+	c := context.GetContext()
+	c.SetContext(debug)
 }

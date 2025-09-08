@@ -20,10 +20,20 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	PersistentPreRun: func(cmd *cobra.Command, arg []string) {
+		config, err := config.LoadShortcut()
+		if err != nil {
+			fmt.Println("Shorty list have error while loading shortcut: ")
+			fmt.Println(err)
+		}
+		fmt.Println(config)
+		for key, val := range config.Shortcuts {
+			fmt.Printf("Key: %d, Value: %s\n", key, val)
+		}
+		// TODO: List shortcuts with description
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("list called")
-		config := config.GetConfig()
-		fmt.Println(config)
 	},
 }
 
