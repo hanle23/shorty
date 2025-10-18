@@ -105,22 +105,33 @@ func LoadConfig() (*ConfigFile, error) {
 	return &cfg, nil
 }
 
-func LoadShortcut() (*ShortcutFile, error) {
+func LoadShortcut() error {
 	path, err := GetShortcutPath()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read shortcut: %w", err)
+		return fmt.Errorf("failed to read shortcut: %w", err)
 	}
 
-	var cfg ShortcutFile
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse shortcut: %w", err)
+	var shortcut ShortcutFile
+	if err := yaml.Unmarshal(data, &shortcut); err != nil {
+		return fmt.Errorf("failed to parse shortcut: %w", err)
 	}
+	shortcutInstance = &shortcut
+	return nil
+}
 
-	return &cfg, nil
+func GetShortcut() (*ShortcutFile, error) {
+	if shortcutInstance != nil {
+		return shortcutInstance, nil
+	}
+	err := LoadShortcut()
+	if err != nil {
+		return nil, err
+	}
+	return shortcutInstance, nil
 }
 
 // func GetEmptyShortcutYAML() ([]byte, error) {
