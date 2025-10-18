@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hanle23/shorty/internal/config"
+	"github.com/hanle23/shorty/internal/strings"
 	"github.com/spf13/cobra"
 )
 
@@ -34,9 +35,7 @@ to quickly create a Cobra application.`,
 			fmt.Println(err)
 			return
 		}
-		for key, val := range shortcut.Shortcuts {
-			fmt.Printf("Key: %d, Value: %s\n", key, val)
-		}
+		strings.PrintShortcut(*shortcut, 20)
 	},
 }
 
