@@ -9,6 +9,7 @@ import (
 
 var (
 	PADDING int16 = 5
+	DOTSLEN int16 = 3
 )
 
 func Split(s string, sep string) []string {
@@ -35,14 +36,15 @@ func PrintStringLimit(s string, limit int16) {
 	fmt.Print(s[:int(rL)])
 	padding := limit - int16(rL) + PADDING
 	if int(rL) < len(s) {
-		padding -= 3
-		fmt.Print("...")
+		padding -= DOTSLEN
+		fmt.Print(strings.Repeat(".", int(DOTSLEN)))
 	}
 	fmt.Print(strings.Repeat(" ", int(padding)))
 }
 
 func PrintShortcut(s config.ShortcutFile, l int16) {
 	var headers = []string{"Name", "Package", "Description", "Args"}
+	fmt.Println("SHORTCUTS")
 	for _, v := range headers {
 		PrintStringLimit(v, l)
 	}
