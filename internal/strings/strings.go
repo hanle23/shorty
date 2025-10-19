@@ -34,6 +34,10 @@ func PrintStringLimit(s string, limit int16) {
 	rL := math.Min(float64(limit), float64(len(s)))
 	fmt.Print(s[:int(rL)])
 	padding := limit - int16(rL) + PADDING
+	if int(rL) < len(s) {
+		padding -= 3
+		fmt.Print("...")
+	}
 	fmt.Print(strings.Repeat(" ", int(padding)))
 }
 
@@ -47,5 +51,12 @@ func PrintShortcut(s config.ShortcutFile, l int16) {
 		PrintStringLimit(v.Shortcut_name, l)
 		PrintStringLimit(v.Package_name, l)
 		PrintStringLimit(v.Description, l)
+		argsString := ""
+		for _, arg := range v.Args {
+			argsString += arg
+			argsString += ", "
+		}
+		PrintStringLimit(argsString, l)
+		fmt.Println("\n")
 	}
 }
