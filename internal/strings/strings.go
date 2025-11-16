@@ -42,7 +42,7 @@ func PrintStringLimit(s string, limit int16) {
 	fmt.Print(strings.Repeat(" ", int(padding)))
 }
 
-func PrintShortcut(s config.ShortcutFile, l int16) {
+func PrintRunnable(s config.RunnableFile, l int16) {
 	var headers = []string{"Name", "Package", "Description", "Args"}
 	fmt.Println("SHORTCUTS")
 	for _, v := range headers {
@@ -59,6 +59,19 @@ func PrintShortcut(s config.ShortcutFile, l int16) {
 			argsString += ", "
 		}
 		PrintStringLimit(argsString, l)
+		fmt.Println("\n")
+	}
+
+	var scriptHeaders = []string{"Package", "Script", "Description"}
+	fmt.Println("SCRIPTS")
+	for _, v := range scriptHeaders {
+		PrintStringLimit(v, l)
+	}
+	fmt.Println("\n")
+	for _, v := range s.Scripts {
+		PrintStringLimit(v.Package_name, l)
+		PrintStringLimit(v.Script, l)
+		PrintStringLimit(v.Description, l)
 		fmt.Println("\n")
 	}
 }

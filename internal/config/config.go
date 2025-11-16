@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	ConfigFileName    = "config.yaml"
-	ShortcutsFileName = "shortcuts.yaml"
-	DefaultFileDir    = "/.config/shorty"
+	ConfigFileName   = "config.yaml"
+	RunnableFileName = "Runnable.yaml"
+	DefaultFileDir   = "/.config/shorty"
 )
 
 // All shortcut name needs to be unique
@@ -37,39 +37,38 @@ type Script struct {
 	Description  string `yaml:"description,omitempty"`
 }
 
-type ShortcutFile struct {
+type RunnableFile struct {
 	Shortcuts map[string]Shortcut `yaml:"shortcuts"`
 	Scripts   map[string]Script   `yaml:"scripts"`
 }
 
 type ConfigFile struct {
-	ShortcutPath string `yaml:"shortcut_path"`
+	RunnablePath string `yaml:"runnable_path"`
 }
 
 var (
 	initConfigDir    = new(sync.Once)
-	configDir        string
-	shortcutInstance *ShortcutFile
-	configInstance   *ShortcutFile
+	RunnableInstance *RunnableFile
+	configInstance   *ConfigFile
 	once             sync.Once
 	mu               sync.RWMutex
 )
 
-func GetEmptyShortcutObject() *ShortcutFile {
-	newShortcutObject := &ShortcutFile{
+func GetEmptyRunnableObject() *RunnableFile {
+	newRunnableObject := &RunnableFile{
 		Scripts:   make(map[string]Script),
 		Shortcuts: make(map[string]Shortcut),
 	}
-	return newShortcutObject
+	return newRunnableObject
 }
 
-func GetShortcutPath() (string, error) {
+func GetRunnablePath() (string, error) {
 	config, err := LoadConfig()
 	if err != nil {
 		return "", err
 	}
-	if config.ShortcutPath != "" {
-		return config.ShortcutPath, nil
+	if config.RunnablePath != "" {
+		return config.RunnablePath, nil
 	}
 	return "", nil
 }
@@ -81,11 +80,12 @@ func GetEmptyConfigObject() (*ConfigFile, error) {
 	}
 	path := filepath.Join(defaultPath, ConfigFileName)
 	newConfigObject := &ConfigFile{
-		ShortcutPath: path,
+		RunnablePath: path,
 	}
 	return newConfigObject, nil
 }
 
+// Grabbing config file and load it into configInstance, also return the file object
 func LoadConfig() (*ConfigFile, error) {
 	path, err := GetDefaultPath()
 	if err != nil {
@@ -101,37 +101,41 @@ func LoadConfig() (*ConfigFile, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
-
+	configInstance = &cfg
 	return &cfg, nil
 }
 
-func LoadShortcut() error {
-	path, err := GetShortcutPath()
+func LoadRunnable() error {
+	path, err := GetRunnablePath()
 	if err != nil {
 		return err
 	}
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return fmt.Errorf("failed to read shortcut: %w", err)
+		return fmt.Errorf("failed to read runnable: %w", err)
 	}
 
-	var shortcut ShortcutFile
-	if err := yaml.Unmarshal(data, &shortcut); err != nil {
-		return fmt.Errorf("failed to parse shortcut: %w", err)
+	var runnable RunnableFile
+	if err := yaml.Unmarshal(data, &runnable); err != nil {
+		return fmt.Errorf("failed to parse Runnable: %w", err)
 	}
-	shortcutInstance = &shortcut
+	RunnableInstance = &runnable
 	return nil
 }
 
-func GetShortcut() (*ShortcutFile, error) {
-	if shortcutInstance != nil {
-		return shortcutInstance, nil
+func GetRunnable() (*RunnableFile, error) {
+	if RunnableInstance != nil {
+		return RunnableInstance, nil
 	}
-	err := LoadShortcut()
+	err := LoadRunnable()
 	if err != nil {
 		return nil, err
 	}
-	return shortcutInstance, nil
+	return RunnableInstance, nil
+}
+
+func GetScript() (*ConfigFile, error) {
+	return nil, nil
 }
 
 // func GetEmptyShortcutYAML() ([]byte, error) {
@@ -143,7 +147,7 @@ func GetShortcut() (*ShortcutFile, error) {
 //	return bytes, nil
 //}
 
-// Get default path for shortcut
+// Get default path for main config folder
 func GetDefaultPath() (string, error) {
 	homeDir, err := fs.GetHomeDir()
 	if err != nil {
@@ -153,17 +157,8 @@ func GetDefaultPath() (string, error) {
 	return dir, nil
 }
 
-// Get current shortcut path from config if was overrided
-func GetShortcutDir() (string, error) {
-	initConfigDir.Do(func() {
-		// TODO: Need to load config file here and get from config instead of env
-		// TODO: Need to also rethink on how to write this function
-	})
-	return configDir, nil
-}
-
-// TODO: Currently not persistant, need to set it into config file
-func SetOverrideShortcutDir(dir string) error {
+// TODO: Override the config shortcutDir with this new dir
+func SetOverrideRunnableDir(dir string) error {
 	isExist := fs.IsExist(dir)
 	if !isExist {
 		err := fs.CreateDir(dir, false)
@@ -175,8 +170,7 @@ func SetOverrideShortcutDir(dir string) error {
 	return nil
 }
 
-// TODO: Currently not persistant, need to either make a .env file if this is being set
-func SetDefaultShortcutDir() error {
+func SetDefaultRunnableDir() error {
 	dir, err := GetDefaultPath()
 	if err != nil {
 		return err
@@ -192,21 +186,19 @@ func SetDefaultShortcutDir() error {
 	return nil
 }
 
-func InitShortcut(isNewShortcut bool) error {
-	currShortcutDir, err := GetShortcutDir()
+// TODO: This function should retrieve paths from prompt and handle the creation at the same time
+func InitRunnable(isNewRunnable bool) error {
+	currRunnableDir, err := GetRunnablePath()
 	if err != nil {
 		return err
 	}
-	if !isNewShortcut {
-		isExist := fs.IsExist(currShortcutDir)
-		if isExist {
-			shouldOverride := io.OverrideConfigPrompt(currShortcutDir)
-			if !shouldOverride {
-				return nil
-			}
+	isExist := fs.IsExist(currRunnableDir)
+	if !isNewRunnable && isExist {
+		shouldOverride := io.OverrideConfigPrompt(currRunnableDir)
+		if !shouldOverride {
+			return nil
 		}
 	}
-
 	defaultPath, err := GetDefaultPath()
 	if err != nil {
 		return err
@@ -214,7 +206,7 @@ func InitShortcut(isNewShortcut bool) error {
 	shouldUseDefault := io.DefaultPathPrompt(defaultPath)
 	if shouldUseDefault {
 		fmt.Println("Initiating config to default path...")
-		err := SetDefaultShortcutDir()
+		err := SetDefaultRunnableDir()
 		if err != nil {
 			return err
 		}
@@ -224,7 +216,7 @@ func InitShortcut(isNewShortcut bool) error {
 			return nil
 		}
 		fmt.Println("Setting new path...")
-		err := SetOverrideShortcutDir(newDir)
+		err := SetOverrideRunnableDir(newDir)
 		if err != nil {
 			return err
 		}

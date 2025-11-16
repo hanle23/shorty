@@ -14,28 +14,27 @@ import (
 // listCmd represents the list command
 var listCmd = &cobra.Command{
 	Use:   "list",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Listing current shortcut and script.",
+	Long: `List out every shortcut and script.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	This command will print out a non-ordered list of items from both shortcut and script,
+	With every information from the user-set name, original name, description and additional argument
+	per user selection.`,
 	PersistentPreRun: func(cmd *cobra.Command, arg []string) {
-		err := config.LoadShortcut()
+		err := config.LoadRunnable()
 		if err != nil {
 			fmt.Println("Shorty list have error while loading shortcut: ")
 			fmt.Println(err)
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		shortcut, err := config.GetShortcut()
+		shortcut, err := config.GetRunnable()
 		if err != nil {
 			fmt.Println("Shorty list have error while loading shortcut: ")
 			fmt.Println(err)
 			return
 		}
-		strings.PrintShortcut(*shortcut, 20)
+		strings.PrintRunnable(*shortcut, 20)
 	},
 }
 

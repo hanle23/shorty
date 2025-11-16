@@ -1,12 +1,12 @@
 /*
 Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
 	"fmt"
 
+	"github.com/hanle23/shorty/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -20,8 +20,33 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
+	PersistentPreRun: func(cmd *cobra.Command, arg []string) {
+		err := config.LoadRunnable()
+		if err != nil {
+			fmt.Println("Shorty list have error while loading shortcut: ")
+			fmt.Println(err)
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("add called")
+		runnable, err := config.GetRunnable()
+		if err != nil {
+			fmt.Println("Failed to load the current list of shortcut")
+			fmt.Println(err)
+			return
+		}
+		fmt.Println(runnable)
+		if err != nil {
+			fmt.Println("Failed to load the current list of shortcut")
+			fmt.Println(err)
+			return
+		}
+
+		if len(args) == 0 {
+			fmt.Println("No argument, print out prompts to add new commands")
+			return
+		}
+		fmt.Println("Parse through list of args to add it immediately")
 	},
 }
 
