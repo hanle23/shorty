@@ -3,10 +3,28 @@ package io
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/hanle23/shorty/internal/interfaces"
+	"github.com/pkg/term"
 )
+
+const (
+	KeyUp     = byte(65)
+	KeyDown   = byte(66)
+	KeyEscape = byte(27)
+	KeyEnter  = byte(13)
+	KeyJ      = byte(106)
+	KeyK      = byte(107)
+)
+
+var NavigationKeys = map[byte]bool{
+	KeyUp:   true,
+	KeyDown: true,
+}
 
 func ApprovalPrompt(prompt string) bool {
 	fmt.Printf("%s, do you want to proceed? (y/N): ", prompt)
@@ -72,4 +90,103 @@ func CustomNewPathPrompt(path string) string {
 	newDir, _ := r.ReadString('\n')
 	newDir = strings.TrimSpace(newDir)
 	return newDir
+}
+
+func AddNewShortcutPrompt() *interfaces.Shortcut {
+	newShortcut := &interfaces.Shortcut{
+		Package_name:  "",
+		Shortcut_name: "",
+		Args:          []string{},
+		Description:   "",
+	}
+	// TODO: Adding prompt, inputs and assign values into newShortcut
+	return newShortcut
+
+}
+
+func AddNewScriptPrompt() *interfaces.Script {
+	newScript := &interfaces.Script{
+		Package_name: "",
+		Script:       "",
+		Description:  "",
+	}
+	// TODO: Adding prompt, inputs and assign values into newScript
+	return newScript
+
+}
+
+func RenderModeSelector(index int, redraw bool) {
+	modeTypes := [2]string{"Shortcut", "Script"}
+	if redraw {
+		fmt.Printf("\033[3A\033[0J")
+	}
+	fmt.Print("Select the type you want to interact with:\n")
+	for idx, val := range modeTypes {
+		if idx == index {
+			fmt.Printf("> %v\n", val)
+		} else {
+			fmt.Printf("%d %v\n", idx+1, val)
+		}
+	}
+}
+
+// This prompt will return 0 if shortcut or 1 if script
+func ModeSelectorPrompt() int {
+	index := 0
+	RenderModeSelector(index, false)
+	for {
+		keyCode := getInput()
+		switch keyCode {
+		case KeyEscape:
+			return -1
+		case KeyEnter:
+			return index
+		case KeyUp:
+			index = (index - 1) % 2
+			if index < 0 {
+				index = 1
+			}
+			RenderModeSelector(index, true)
+		case KeyK:
+			index = (index - 1) % 2
+			if index < 0 {
+				index = 1
+			}
+			RenderModeSelector(index, true)
+		case KeyDown:
+			index = (index + 1) % 2
+			RenderModeSelector(index, true)
+		case KeyJ:
+			index = (index + 1) % 2
+			RenderModeSelector(index, true)
+		}
+	}
+}
+
+func getInput() byte {
+	t, _ := term.Open("/dev/tty")
+	defer t.Close()
+
+	err := term.RawMode(t)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var read int
+	readBytes := make([]byte, 3)
+	read, err = t.Read(readBytes)
+	if err != nil {
+		return 0
+	}
+
+	defer t.Restore()
+
+	if read == 3 {
+		if _, ok := NavigationKeys[readBytes[2]]; ok {
+			return readBytes[2]
+		}
+	} else {
+		return readBytes[0]
+	}
+	return 0
 }

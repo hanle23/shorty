@@ -1,5 +1,5 @@
 /*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
+Copyright © 2025 Han Le <hanle.cs23@gmail.com>
 */
 package cmd
 
@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/hanle23/shorty/internal/config"
+	"github.com/hanle23/shorty/internal/io"
 	"github.com/spf13/cobra"
 )
 
@@ -28,20 +29,12 @@ to quickly create a Cobra application.`,
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("add called")
-		runnable, err := config.GetRunnable()
-		if err != nil {
-			fmt.Println("Failed to load the current list of shortcut")
-			fmt.Println(err)
+		mode := io.ModeSelectorPrompt()
+		if mode == -1 {
+			fmt.Println("Exiting...")
 			return
 		}
-		fmt.Println(runnable)
-		if err != nil {
-			fmt.Println("Failed to load the current list of shortcut")
-			fmt.Println(err)
-			return
-		}
-
+		fmt.Println(args)
 		if len(args) == 0 {
 			fmt.Println("No argument, print out prompts to add new commands")
 			return
