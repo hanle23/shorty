@@ -34,12 +34,13 @@ to quickly create a Cobra application.`,
 			fmt.Println("Exiting...")
 			return
 		}
-		fmt.Println(args)
-		if len(args) == 0 {
-			fmt.Println("No argument, print out prompts to add new commands")
-			return
+		if mode == 0 {
+			newShortcut := io.AddNewShortcutPrompt(args)
+			fmt.Println(newShortcut)
+		} else {
+			newScript := io.AddNewScriptPrompt(args)
+			fmt.Println(newScript)
 		}
-		fmt.Println("Parse through list of args to add it immediately")
 	},
 }
 

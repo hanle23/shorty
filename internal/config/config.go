@@ -2,14 +2,14 @@ package config
 
 import (
 	"fmt"
-	"github.com/goccy/go-yaml"
 	"os"
 	"path/filepath"
-	"sync"
+
+	"github.com/goccy/go-yaml"
 
 	"github.com/hanle23/shorty/internal/fs"
-	"github.com/hanle23/shorty/internal/interfaces"
 	"github.com/hanle23/shorty/internal/io"
+	"github.com/hanle23/shorty/internal/types"
 )
 
 const (
@@ -19,17 +19,17 @@ const (
 )
 
 var (
-	initConfigDir    = new(sync.Once)
-	RunnableInstance *interfaces.RunnableFile
-	configInstance   *interfaces.ConfigFile
-	once             sync.Once
-	mu               sync.RWMutex
+	// initConfigDir    = new(sync.Once)
+	RunnableInstance *types.RunnableFile
+	configInstance   *types.ConfigFile
+	// once             sync.Once
+	// mu               sync.RWMutex
 )
 
-func GetEmptyRunnableObject() *interfaces.RunnableFile {
-	newRunnableObject := &interfaces.RunnableFile{
-		Scripts:   make(map[string]interfaces.Script),
-		Shortcuts: make(map[string]interfaces.Shortcut),
+func GetEmptyRunnableObject() *types.RunnableFile {
+	newRunnableObject := &types.RunnableFile{
+		Scripts:   make(map[string]types.Script),
+		Shortcuts: make(map[string]types.Shortcut),
 	}
 	return newRunnableObject
 }
@@ -45,20 +45,20 @@ func GetRunnablePath() (string, error) {
 	return "", nil
 }
 
-func GetEmptyConfigObject() (*interfaces.ConfigFile, error) {
+func GetEmptyConfigObject() (*types.ConfigFile, error) {
 	defaultPath, err := GetDefaultPath()
 	if err != nil {
 		return nil, err
 	}
 	path := filepath.Join(defaultPath, ConfigFileName)
-	newConfigObject := &interfaces.ConfigFile{
+	newConfigObject := &types.ConfigFile{
 		RunnablePath: path,
 	}
 	return newConfigObject, nil
 }
 
 // Grabbing config file and load it into configInstance, also return the file object
-func LoadConfig() (*interfaces.ConfigFile, error) {
+func LoadConfig() (*types.ConfigFile, error) {
 	path, err := GetDefaultPath()
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func LoadConfig() (*interfaces.ConfigFile, error) {
 		return nil, fmt.Errorf("failed to read config: %w", err)
 	}
 
-	var cfg interfaces.ConfigFile
+	var cfg types.ConfigFile
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
@@ -87,7 +87,7 @@ func LoadRunnable() error {
 		return fmt.Errorf("failed to read runnable: %w", err)
 	}
 
-	var runnable interfaces.RunnableFile
+	var runnable types.RunnableFile
 	if err := yaml.Unmarshal(data, &runnable); err != nil {
 		return fmt.Errorf("failed to parse Runnable: %w", err)
 	}
@@ -95,7 +95,7 @@ func LoadRunnable() error {
 	return nil
 }
 
-func GetRunnable() (*interfaces.RunnableFile, error) {
+func GetRunnable() (*types.RunnableFile, error) {
 	if RunnableInstance != nil {
 		return RunnableInstance, nil
 	}
@@ -106,7 +106,7 @@ func GetRunnable() (*interfaces.RunnableFile, error) {
 	return RunnableInstance, nil
 }
 
-func GetScript() (*interfaces.ConfigFile, error) {
+func GetScript() (*types.ConfigFile, error) {
 	return nil, nil
 }
 

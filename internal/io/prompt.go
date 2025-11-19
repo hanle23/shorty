@@ -8,17 +8,19 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hanle23/shorty/internal/interfaces"
+	"github.com/hanle23/shorty/internal/types"
 	"github.com/pkg/term"
 )
 
 const (
-	KeyUp     = byte(65)
-	KeyDown   = byte(66)
-	KeyEscape = byte(27)
-	KeyEnter  = byte(13)
-	KeyJ      = byte(106)
-	KeyK      = byte(107)
+	KeyUp        = byte(65)
+	KeyDown      = byte(66)
+	KeyEscape    = byte(27)
+	KeyEnter     = byte(13)
+	KeyJ         = byte(106)
+	KeyK         = byte(107)
+	KeyBackspace = byte(127)
+	KeyDelete    = byte(8)
 )
 
 var NavigationKeys = map[byte]bool{
@@ -92,25 +94,135 @@ func CustomNewPathPrompt(path string) string {
 	return newDir
 }
 
-func AddNewShortcutPrompt() *interfaces.Shortcut {
-	newShortcut := &interfaces.Shortcut{
+func EditablePrompt(prompt string, defaultValue string) string {
+	fmt.Printf("%s%s", prompt, defaultValue)
+
+	t, err := term.Open("/dev/tty")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = term.RawMode(t)
+	if err != nil {
+		t.Close()
+		log.Fatal(err)
+	}
+
+	input := []byte(defaultValue)
+	cursorPos := len(input)
+
+	// Helper function to redraw the line from cursor position
+	redrawLine := func() {
+		// Clear from cursor to end of line
+		fmt.Print("\033[K")
+		if cursorPos < len(input) {
+			fmt.Print(string(input[cursorPos:]))
+		}
+		if cursorPos < len(input) {
+			for i := 0; i < len(input)-cursorPos; i++ {
+				fmt.Print("\b")
+			}
+		}
+	}
+
+	for {
+		readBytes := make([]byte, 3)
+		read, err := t.Read(readBytes)
+		if err != nil {
+			break
+		}
+
+		if read == 3 {
+			if readBytes[0] == 27 && readBytes[1] == 91 {
+				continue
+			}
+		} else if read == 1 {
+			key := readBytes[0]
+
+			if key == KeyEnter {
+				// Restore terminal before printing newline
+				t.Restore()
+				t.Close()
+				fmt.Print("\n")
+				break
+			} else if key == KeyEscape {
+				t.Restore()
+				t.Close()
+				fmt.Print("\n")
+				return ""
+			} else if key == KeyBackspace || key == KeyDelete {
+				if cursorPos > 0 {
+					// Remove character before cursor
+					fmt.Print("\b")
+					input = append(input[:cursorPos-1], input[cursorPos:]...)
+					cursorPos--
+					redrawLine()
+				}
+			} else if key >= 32 && key < 127 {
+				// Printable character - insert at cursor position
+				char := string(key)
+				input = append(input[:cursorPos], append([]byte(char), input[cursorPos:]...)...)
+				fmt.Print(string(input[cursorPos:]))
+				cursorPos++
+				if cursorPos < len(input) {
+					for i := 0; i < len(input)-cursorPos; i++ {
+						fmt.Print("\b")
+					}
+				}
+			}
+		}
+	}
+
+	return string(input)
+}
+
+func AddNewShortcutPrompt(args []string) *types.Shortcut {
+	newShortcut := &types.Shortcut{
 		Package_name:  "",
 		Shortcut_name: "",
 		Args:          []string{},
 		Description:   "",
 	}
-	// TODO: Adding prompt, inputs and assign values into newShortcut
+	packageName := ""
+	shortcutName := ""
+	if len(args) > 0 {
+		packageName = args[0]
+	}
+	if len(args) > 1 {
+		shortcutName = args[1]
+	}
+	packageName = EditablePrompt("Please type the package name for the new shortcut: ", packageName)
+	shortcutName = EditablePrompt("Please type the alias name for the new shortcut: ", shortcutName)
+	description := EditablePrompt("Please type the description for the new shortcut: ", "")
+	fmt.Println("\nIf you want to add more arguments, we recommend editing the runnable file manually")
+	newShortcut.Package_name = strings.TrimSpace(packageName)
+	newShortcut.Shortcut_name = strings.TrimSpace(shortcutName)
+	newShortcut.Description = strings.TrimSpace(description)
 	return newShortcut
-
 }
 
-func AddNewScriptPrompt() *interfaces.Script {
-	newScript := &interfaces.Script{
+func AddNewScriptPrompt(args []string) *types.Script {
+	newScript := &types.Script{
 		Package_name: "",
 		Script:       "",
 		Description:  "",
 	}
-	// TODO: Adding prompt, inputs and assign values into newScript
+	packageName := ""
+	script := ""
+	if len(args) > 0 {
+		packageName = args[0]
+	}
+	if len(args) > 1 {
+		script = args[1]
+	}
+
+	packageName = EditablePrompt("Please type the package name for the new script: ", packageName)
+	script = EditablePrompt("Please type the script for the new script: ", script)
+	description := EditablePrompt("Please type the description for the new script: ", "")
+	fmt.Println("\nIf you want to add more arguments, we recommend editing the runnable file manually")
+	newScript.Package_name = strings.TrimSpace(packageName)
+	newScript.Script = strings.TrimSpace(script)
+	newScript.Description = strings.TrimSpace(description)
 	return newScript
 
 }

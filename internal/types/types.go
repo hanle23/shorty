@@ -1,4 +1,4 @@
-package interfaces
+package types
 
 // All shortcut name needs to be unique
 // Package Name is the name of the program that will be replaced by shortcut name

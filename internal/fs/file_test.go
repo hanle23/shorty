@@ -1,14 +1,15 @@
 package fs_test
 
 import (
-	"github.com/hanle23/shorty/internal/fs"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/hanle23/shorty/internal/fs"
 )
 
 func TestGetHomeDir(t *testing.T) {
-	home, err := fs.GetConfigHomeDir()
+	home, err := fs.GetHomeDir()
 	if err != nil {
 		t.Error(err)
 	}

@@ -2,9 +2,10 @@ package strings
 
 import (
 	"fmt"
-	"github.com/hanle23/shorty/internal/config"
 	"math"
 	"strings"
+
+	"github.com/hanle23/shorty/internal/types"
 )
 
 var (
@@ -42,7 +43,7 @@ func PrintStringLimit(s string, limit int16) {
 	fmt.Print(strings.Repeat(" ", int(padding)))
 }
 
-func PrintRunnable(s config.RunnableFile, l int16) {
+func PrintRunnable(s types.RunnableFile, l int16) {
 	var headers = []string{"Name", "Package", "Description", "Args"}
 	fmt.Println("SHORTCUTS")
 	for _, v := range headers {
