@@ -36,10 +36,20 @@ to quickly create a Cobra application.`,
 		}
 		if mode == 0 {
 			newShortcut := io.AddNewShortcutPrompt(args)
-			fmt.Println(newShortcut)
+			err := config.AddShortcut(newShortcut)
+			if err != nil {
+				fmt.Println("Error adding shortcut: ", err)
+				return
+			}
+			fmt.Println("Shortcut added successfully")
 		} else {
 			newScript := io.AddNewScriptPrompt(args)
-			fmt.Println(newScript)
+			err := config.AddScript(newScript)
+			if err != nil {
+				fmt.Println("Error adding script: ", err)
+				return
+			}
+			fmt.Println("Script added successfully")
 		}
 	},
 }

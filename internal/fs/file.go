@@ -11,10 +11,6 @@ import (
 	"github.com/hanle23/shorty/internal/io"
 )
 
-//const (
-//	fileModeVal = uint32(0755)
-//)
-
 func GetHomeDir() (string, error) {
 	c := context.GetContext()
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {

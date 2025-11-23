@@ -2,10 +2,9 @@ package yamlutil
 
 import (
 	"github.com/goccy/go-yaml"
-	"github.com/hanle23/shorty/internal/types"
 )
 
-func ObjectToYaml(object types.Shortcut) ([]byte, error) {
+func ObjectToYaml(object any) ([]byte, error) {
 	bytes, err := yaml.Marshal(object)
 	if err != nil {
 		return nil, err

@@ -86,6 +86,14 @@ func DefaultPathPrompt(defaultPath string) bool {
 	return ans == "y"
 }
 
+func YesNoPrompt(prompt string) bool {
+	r := bufio.NewReader(os.Stdin)
+	fmt.Printf("%s ", prompt)
+	ans, _ := r.ReadString('\n')
+	ans = strings.TrimSpace(ans)
+	return ans == "y" || ans == "Y"
+}
+
 func CustomNewPathPrompt(path string) string {
 	r := bufio.NewReader(os.Stdin)
 	fmt.Print("Please type the full path for the new config file: ")
@@ -194,7 +202,7 @@ func AddNewShortcutPrompt(args []string) *types.Shortcut {
 	packageName = EditablePrompt("Please type the package name for the new shortcut: ", packageName)
 	shortcutName = EditablePrompt("Please type the alias name for the new shortcut: ", shortcutName)
 	description := EditablePrompt("Please type the description for the new shortcut: ", "")
-	fmt.Println("\nIf you want to add more arguments, we recommend editing the runnable file manually")
+	fmt.Print("\nIf you want to add more arguments, we recommend editing the runnable file manually\n\n")
 	newShortcut.Package_name = strings.TrimSpace(packageName)
 	newShortcut.Shortcut_name = strings.TrimSpace(shortcutName)
 	newShortcut.Description = strings.TrimSpace(description)
@@ -219,7 +227,7 @@ func AddNewScriptPrompt(args []string) *types.Script {
 	packageName = EditablePrompt("Please type the package name for the new script: ", packageName)
 	script = EditablePrompt("Please type the script for the new script: ", script)
 	description := EditablePrompt("Please type the description for the new script: ", "")
-	fmt.Println("\nIf you want to add more arguments, we recommend editing the runnable file manually")
+	fmt.Print("\nIf you want to add more arguments, we recommend editing the runnable file manually\n\n")
 	newScript.Package_name = strings.TrimSpace(packageName)
 	newScript.Script = strings.TrimSpace(script)
 	newScript.Description = strings.TrimSpace(description)

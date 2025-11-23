@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/hanle23/shorty/internal/fs"
 	"github.com/hanle23/shorty/internal/io"
 	"github.com/hanle23/shorty/internal/types"
+	"github.com/hanle23/shorty/internal/yamlutil"
 )
 
 const (
@@ -129,6 +131,52 @@ func GetDefaultPath() (string, error) {
 	return dir, nil
 }
 
+func AddShortcut(newShortcut *types.Shortcut) error {
+	currRunnable, err := GetRunnable()
+	if err != nil {
+		return err
+	}
+	currShortcut := currRunnable.Shortcuts
+	_, exist := currShortcut[newShortcut.Shortcut_name]
+	if exist {
+		proceed := io.YesNoPrompt("This shortcut is already exist, do you wish to overwrite it? (Y/n)")
+		if !proceed {
+			return nil
+		}
+	}
+	newRunnable := *currRunnable
+	newRunnable.Shortcuts[newShortcut.Shortcut_name] = *newShortcut
+	RunnableInstance = &newRunnable
+	err = SaveRunnableInstance(&newRunnable)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func AddScript(newScript *types.Script) error {
+	currRunnable, err := GetRunnable()
+	if err != nil {
+		return err
+	}
+	currScript := currRunnable.Scripts
+	_, exist := currScript[newScript.Package_name]
+	if exist {
+		proceed := io.YesNoPrompt("This script is already exist, do you wish to overwrite it? (Y/n)")
+		if !proceed {
+			return nil
+		}
+	}
+	newRunnable := *currRunnable
+	newRunnable.Scripts[newScript.Package_name] = *newScript
+	RunnableInstance = &newRunnable
+	err = SaveRunnableInstance(&newRunnable)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // TODO: Override the config shortcutDir with this new dir
 func SetOverrideRunnableDir(dir string) error {
 	isExist := fs.IsExist(dir)
@@ -193,5 +241,29 @@ func InitRunnable(isNewRunnable bool) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func SaveRunnableInstance(currRunnable *types.RunnableFile) error {
+	runnablePath, err := GetRunnablePath()
+	if err != nil {
+		return err
+	}
+
+	yamlRunnable, err := yamlutil.ObjectToYaml(*currRunnable)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(runnablePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if _, err := f.Write(yamlRunnable); err != nil {
+		log.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		log.Fatal(err)
+	}
+
 	return nil
 }

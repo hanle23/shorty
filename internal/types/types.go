@@ -20,6 +20,8 @@ type Script struct {
 	Description  string `yaml:"description,omitempty"`
 }
 
+// Shortcuts is a map of shortcut_name and Shortcut object
+// Scripts is a map of package_name and Script object
 type RunnableFile struct {
 	Shortcuts map[string]Shortcut `yaml:"shortcuts"`
 	Scripts   map[string]Script   `yaml:"scripts"`
