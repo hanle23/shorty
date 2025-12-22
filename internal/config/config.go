@@ -214,7 +214,7 @@ func InitRunnable(isNewRunnable bool) error {
 	}
 	isExist := fs.IsExist(currRunnableDir)
 	if !isNewRunnable && isExist {
-		shouldOverride := io.OverrideConfigPrompt(currRunnableDir)
+		shouldOverride := io.YesNoPrompt(fmt.Sprintf("Found an existing file or directory (%s), do you want to override this? (y/n)?", currRunnableDir))
 		if !shouldOverride {
 			return nil
 		}
@@ -223,7 +223,7 @@ func InitRunnable(isNewRunnable bool) error {
 	if err != nil {
 		return err
 	}
-	shouldUseDefault := io.DefaultPathPrompt(defaultPath)
+	shouldUseDefault := io.YesNoPrompt(fmt.Sprintf("Do you want to use the default path? (%s) (y/n)?", defaultPath))
 	if shouldUseDefault {
 		fmt.Println("Initiating config to default path...")
 		err := SetDefaultRunnableDir()

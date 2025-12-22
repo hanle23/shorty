@@ -46,8 +46,8 @@ func CreateDir(path string, bypassPrompt bool) error {
 	isExist := IsExist(path)
 	fileModeVal := uint32(0755)
 	if !bypassPrompt {
-		allowOverride := io.OverrideConfigPrompt(path)
-		if allowOverride && isExist {
+		shouldOverride := io.YesNoPrompt(fmt.Sprintf("Found an existing file or directory (%s), do you want to override this? (y/n)?", path))
+		if shouldOverride && isExist {
 			err := os.RemoveAll(path)
 			if err != nil {
 				return fmt.Errorf("failed to remove existing directory: %w", err)
