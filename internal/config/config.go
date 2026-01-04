@@ -16,7 +16,7 @@ import (
 
 const (
 	ConfigFileName   = "config.yaml"
-	RunnableFileName = "Runnable.yaml"
+	RunnableFileName = "runnables.yaml"
 	DefaultFileDir   = "/.config/shorty"
 )
 
@@ -36,6 +36,14 @@ func GetEmptyRunnableObject() *types.RunnableFile {
 	return newRunnableObject
 }
 
+func GetEmptyConfigObject(path string) (*types.ConfigFile, error) {
+	newConfigObject := &types.ConfigFile{
+		RunnablePath: path,
+	}
+	return newConfigObject, nil
+}
+
+// Get the path to the runnable file, return empty string if not found from config
 func GetRunnablePath() (string, error) {
 	config, err := LoadConfig()
 	if err != nil {
@@ -47,36 +55,27 @@ func GetRunnablePath() (string, error) {
 	return "", nil
 }
 
-func GetEmptyConfigObject() (*types.ConfigFile, error) {
-	defaultPath, err := GetDefaultPath()
-	if err != nil {
-		return nil, err
-	}
-	path := filepath.Join(defaultPath, ConfigFileName)
-	newConfigObject := &types.ConfigFile{
-		RunnablePath: path,
-	}
-	return newConfigObject, nil
-}
-
 // Grabbing config file and load it into configInstance, also return the file object
 func LoadConfig() (*types.ConfigFile, error) {
-	path, err := GetDefaultPath()
+	if configInstance != nil {
+		return configInstance, nil
+	}
+	path, err := GetDefaultFolderPath()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get default folder path: %w", err)
 	}
 	path = filepath.Join(path, ConfigFileName)
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read config: %w", err)
+		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
 	var cfg types.ConfigFile
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse config: %w", err)
+		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 	configInstance = &cfg
-	return &cfg, nil
+	return configInstance, nil
 }
 
 func LoadRunnable() error {
@@ -108,21 +107,8 @@ func GetRunnable() (*types.RunnableFile, error) {
 	return RunnableInstance, nil
 }
 
-func GetScript() (*types.ConfigFile, error) {
-	return nil, nil
-}
-
-// func GetEmptyShortcutYAML() ([]byte, error) {
-//	newShortcut := GetEmptyShortcutObject()
-//	bytes, err := yamlutil.ObjectToYaml(*newShortcut)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return bytes, nil
-//}
-
 // Get default path for main config folder
-func GetDefaultPath() (string, error) {
+func GetDefaultFolderPath() (string, error) {
 	homeDir, err := fs.GetHomeDir()
 	if err != nil {
 		return "", err
@@ -177,36 +163,54 @@ func AddScript(newScript *types.Script) error {
 	return nil
 }
 
-// TODO: Override the config shortcutDir with this new dir
-func SetOverrideRunnableDir(dir string) error {
+func SetRunnableDir(dir string) error {
 	isExist := fs.IsExist(dir)
 	if !isExist {
+		fmt.Println("Directory does not exist, creating...", dir)
 		err := fs.CreateDir(dir, false)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to create directory: %w", err)
 		}
+		fmt.Println("Directory created successfully...")
 	}
-	// TODO: Need to load or create config object here and append, then write it into config file
-	return nil
-}
-
-func SetDefaultRunnableDir() error {
-	dir, err := GetDefaultPath()
+	config, err := LoadConfig()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load config: %w", err)
 	}
-	isExist := fs.IsExist(dir)
-	if !isExist {
-		err := fs.CreateDir(dir, false)
+	if config.RunnablePath == "" {
+		config.RunnablePath = dir
+		err = SaveConfigInstance(config)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to save config: %w", err)
 		}
+		return nil
 	}
-	// TODO: Need to load or create config object here and append, then write it into config file
 	return nil
 }
 
-// TODO: This function should retrieve paths from prompt and handle the creation at the same time
+func InitConfig() error {
+	config, _ := LoadConfig()
+	if config != nil {
+		shouldOverride := io.YesNoPrompt("Found an existing config file, do you want to override this? (y/n)")
+		if !shouldOverride {
+			return nil
+		}
+	}
+	defaultPath, err := GetDefaultFolderPath()
+	if err != nil {
+		return fmt.Errorf("failed to get default folder path: %w", err)
+	}
+	emptyConfig, err := GetEmptyConfigObject(filepath.Join(defaultPath, ConfigFileName))
+	if err != nil {
+		return fmt.Errorf("failed to get empty config object: %w", err)
+	}
+	err = SaveConfigInstance(emptyConfig)
+	if err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+	return nil
+}
+
 func InitRunnable(isNewRunnable bool) error {
 	currRunnableDir, err := GetRunnablePath()
 	if err != nil {
@@ -219,28 +223,24 @@ func InitRunnable(isNewRunnable bool) error {
 			return nil
 		}
 	}
-	defaultPath, err := GetDefaultPath()
+	newRunnableDir, err := GetDefaultFolderPath()
 	if err != nil {
 		return err
 	}
-	shouldUseDefault := io.YesNoPrompt(fmt.Sprintf("Do you want to use the default path? (%s) (y/n)?", defaultPath))
-	if shouldUseDefault {
-		fmt.Println("Initiating config to default path...")
-		err := SetDefaultRunnableDir()
-		if err != nil {
-			return err
-		}
-	} else {
-		newDir := io.CustomNewPathPrompt(defaultPath)
-		if newDir == "" {
+	shouldUseDefault := io.YesNoPrompt(fmt.Sprintf("Do you want to use the default path? (%s) (y/n)?", newRunnableDir))
+	if !shouldUseDefault {
+		newRunnableDir = io.CustomNewPathPrompt(newRunnableDir)
+		if newRunnableDir == "" {
+			fmt.Println("Empty path, exiting...")
 			return nil
 		}
-		fmt.Println("Setting new path...")
-		err := SetOverrideRunnableDir(newDir)
-		if err != nil {
-			return err
-		}
 	}
+	fmt.Println("Setting new path...", newRunnableDir)
+	err = SetRunnableDir(newRunnableDir)
+	if err != nil {
+		return fmt.Errorf("failed to set new path: %w", err)
+	}
+	fmt.Println("Finished setting new path...")
 	return nil
 }
 
@@ -265,5 +265,27 @@ func SaveRunnableInstance(currRunnable *types.RunnableFile) error {
 		log.Fatal(err)
 	}
 
+	return nil
+}
+
+func SaveConfigInstance(currConfig *types.ConfigFile) error {
+	configPath, err := GetDefaultFolderPath()
+	if err != nil {
+		return err
+	}
+	yamlConfig, err := yamlutil.ObjectToYaml(*currConfig)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(filepath.Join(configPath, ConfigFileName), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if _, err := f.Write(yamlConfig); err != nil {
+		log.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		log.Fatal(err)
+	}
 	return nil
 }

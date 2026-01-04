@@ -41,7 +41,6 @@ func IsExist(path string) bool {
 	return err == nil
 }
 
-// TODO: Maybe display the previous override file mode and ask if the user wants to reuse this setting
 func CreateDir(path string, bypassPrompt bool) error {
 	isExist := IsExist(path)
 	fileModeVal := uint32(0755)

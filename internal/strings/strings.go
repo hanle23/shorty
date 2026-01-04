@@ -13,66 +13,50 @@ var (
 	DOTSLEN int16 = 3
 )
 
-func Split(s string, sep string) []string {
-	result := make([]string, 0)
-	lastIndex := 0
-	for i, item := range s {
-		if string(item) != sep {
-			continue
-		}
-		curr := s[lastIndex:i]
-		if curr != "" {
-			result = append(result, curr)
-		}
-		lastIndex = i + len(sep)
-	}
-	if lastIndex < len(s) && s[lastIndex:] != "" {
-		result = append(result, s[lastIndex:])
-	}
-	return result
-}
-
-func PrintStringLimit(s string, limit int16) {
+func FormatStringLimit(s string, limit int16) string {
+	var result strings.Builder
 	rL := math.Min(float64(limit), float64(len(s)))
-	fmt.Print(s[:int(rL)])
+	result.WriteString(s[:int(rL)])
 	padding := limit - int16(rL) + PADDING
 	if int(rL) < len(s) {
 		padding -= DOTSLEN
-		fmt.Print(strings.Repeat(".", int(DOTSLEN)))
+		result.WriteString(strings.Repeat(".", int(DOTSLEN)))
 	}
-	fmt.Print(strings.Repeat(" ", int(padding)))
+	result.WriteString(strings.Repeat(" ", int(padding)))
+	return result.String()
 }
 
 func PrintRunnable(s types.RunnableFile, l int16) {
 	var headers = []string{"Name", "Package", "Description", "Args"}
 	fmt.Println("SHORTCUTS")
 	for _, v := range headers {
-		PrintStringLimit(v, l)
+		fmt.Print(FormatStringLimit(v, l))
 	}
-	fmt.Println("\n")
+	fmt.Println()
 	for _, v := range s.Shortcuts {
-		PrintStringLimit(v.Shortcut_name, l)
-		PrintStringLimit(v.Package_name, l)
-		PrintStringLimit(v.Description, l)
+		fmt.Print(FormatStringLimit(v.Shortcut_name, l))
+		fmt.Print(FormatStringLimit(v.Package_name, l))
+		fmt.Print(FormatStringLimit(v.Description, l))
 		argsString := ""
 		for _, arg := range v.Args {
 			argsString += arg
 			argsString += ", "
 		}
-		PrintStringLimit(argsString, l)
-		fmt.Println("\n")
+		fmt.Print(FormatStringLimit(argsString, l))
+		fmt.Println()
 	}
 
+	fmt.Println()
 	var scriptHeaders = []string{"Package", "Script", "Description"}
 	fmt.Println("SCRIPTS")
 	for _, v := range scriptHeaders {
-		PrintStringLimit(v, l)
+		fmt.Print(FormatStringLimit(v, l))
 	}
-	fmt.Println("\n")
+	fmt.Println()
 	for _, v := range s.Scripts {
-		PrintStringLimit(v.Package_name, l)
-		PrintStringLimit(v.Script, l)
-		PrintStringLimit(v.Description, l)
-		fmt.Println("\n")
+		fmt.Print(FormatStringLimit(v.Package_name, l))
+		fmt.Print(FormatStringLimit(v.Script, l))
+		fmt.Print(FormatStringLimit(v.Description, l))
+		fmt.Println()
 	}
 }

@@ -115,11 +115,11 @@ func EditablePrompt(prompt string, defaultValue string) string {
 				t.Close()
 				fmt.Print("\n")
 				break
-			} else if key == KeyEscape {
+			} else if key == KeyEscape || key == 'q' {
 				t.Restore()
 				t.Close()
 				fmt.Print("\n")
-				return ""
+				os.Exit(1)
 			} else if key == KeyBackspace || key == KeyDelete {
 				if cursorPos > 0 {
 					// Remove character before cursor
@@ -223,22 +223,13 @@ func ModeSelectorPrompt() int {
 			return -1
 		case KeyEnter:
 			return index
-		case KeyUp:
+		case KeyUp, KeyK:
 			index = (index - 1) % 2
 			if index < 0 {
 				index = 1
 			}
 			RenderModeSelector(index, true)
-		case KeyK:
-			index = (index - 1) % 2
-			if index < 0 {
-				index = 1
-			}
-			RenderModeSelector(index, true)
-		case KeyDown:
-			index = (index + 1) % 2
-			RenderModeSelector(index, true)
-		case KeyJ:
+		case KeyDown, KeyJ:
 			index = (index + 1) % 2
 			RenderModeSelector(index, true)
 		}
