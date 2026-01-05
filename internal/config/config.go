@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -21,11 +20,8 @@ const (
 )
 
 var (
-	// initConfigDir    = new(sync.Once)
 	RunnableInstance *types.RunnableFile
 	configInstance   *types.ConfigFile
-	// once             sync.Once
-	// mu               sync.RWMutex
 )
 
 func GetEmptyRunnableObject() *types.RunnableFile {
@@ -36,9 +32,9 @@ func GetEmptyRunnableObject() *types.RunnableFile {
 	return newRunnableObject
 }
 
-func GetEmptyConfigObject(path string) (*types.ConfigFile, error) {
+func GetEmptyConfigObject(runnablePath string) (*types.ConfigFile, error) {
 	newConfigObject := &types.ConfigFile{
-		RunnablePath: path,
+		RunnablePath: runnablePath,
 	}
 	return newConfigObject, nil
 }
@@ -47,7 +43,7 @@ func GetEmptyConfigObject(path string) (*types.ConfigFile, error) {
 func GetRunnablePath() (string, error) {
 	config, err := LoadConfig()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to load config: %w", err)
 	}
 	if config.RunnablePath != "" {
 		return config.RunnablePath, nil
@@ -102,7 +98,7 @@ func GetRunnable() (*types.RunnableFile, error) {
 	}
 	err := LoadRunnable()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load runnable: %w", err)
 	}
 	return RunnableInstance, nil
 }
@@ -133,9 +129,17 @@ func AddShortcut(newShortcut *types.Shortcut) error {
 	newRunnable := *currRunnable
 	newRunnable.Shortcuts[newShortcut.Shortcut_name] = *newShortcut
 	RunnableInstance = &newRunnable
-	err = SaveRunnableInstance(&newRunnable)
+	runnablePath, err := GetRunnablePath()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get runnable path: %w", err)
+	}
+	runnableYaml, err := yamlutil.ObjectToYaml(newRunnable)
+	if err != nil {
+		return fmt.Errorf("failed to convert runnable to yaml: %w", err)
+	}
+	err = SaveYamlFile(runnablePath, runnableYaml)
+	if err != nil {
+		return fmt.Errorf("failed to save runnable: %w", err)
 	}
 	return nil
 }
@@ -156,14 +160,26 @@ func AddScript(newScript *types.Script) error {
 	newRunnable := *currRunnable
 	newRunnable.Scripts[newScript.Package_name] = *newScript
 	RunnableInstance = &newRunnable
-	err = SaveRunnableInstance(&newRunnable)
+	runnablePath, err := GetRunnablePath()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get runnable path: %w", err)
+	}
+	runnableYaml, err := yamlutil.ObjectToYaml(newRunnable)
+	if err != nil {
+		return fmt.Errorf("failed to convert runnable to yaml: %w", err)
+	}
+	err = SaveYamlFile(runnablePath, runnableYaml)
+	if err != nil {
+		return fmt.Errorf("failed to save runnable: %w", err)
 	}
 	return nil
 }
 
 func SetRunnableDir(dir string) error {
+	defaultFolderPath, err := GetDefaultFolderPath()
+	if err != nil {
+		return fmt.Errorf("failed to get default folder path: %w", err)
+	}
 	isExist := fs.IsExist(dir)
 	if !isExist {
 		fmt.Println("Directory does not exist, creating...", dir)
@@ -177,13 +193,15 @@ func SetRunnableDir(dir string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
-	if config.RunnablePath == "" {
-		config.RunnablePath = dir
-		err = SaveConfigInstance(config)
-		if err != nil {
-			return fmt.Errorf("failed to save config: %w", err)
-		}
-		return nil
+	config.RunnablePath = dir
+	configYaml, err := yamlutil.ObjectToYaml(*config)
+	if err != nil {
+		return fmt.Errorf("failed to convert config to yaml: %w", err)
+	}
+	configFullPath := filepath.Join(defaultFolderPath, ConfigFileName)
+	err = SaveYamlFile(configFullPath, configYaml)
+	if err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
 	}
 	return nil
 }
@@ -196,15 +214,21 @@ func InitConfig() error {
 			return nil
 		}
 	}
-	defaultPath, err := GetDefaultFolderPath()
+	defaultFolderPath, err := GetDefaultFolderPath()
 	if err != nil {
 		return fmt.Errorf("failed to get default folder path: %w", err)
 	}
-	emptyConfig, err := GetEmptyConfigObject(filepath.Join(defaultPath, ConfigFileName))
+	defaultRunnablePath := filepath.Join(defaultFolderPath, RunnableFileName)
+	emptyConfig, err := GetEmptyConfigObject(defaultRunnablePath)
 	if err != nil {
 		return fmt.Errorf("failed to get empty config object: %w", err)
 	}
-	err = SaveConfigInstance(emptyConfig)
+	configYaml, err := yamlutil.ObjectToYaml(*emptyConfig)
+	if err != nil {
+		return fmt.Errorf("failed to convert config to yaml: %w", err)
+	}
+	configFullPath := filepath.Join(defaultFolderPath, ConfigFileName)
+	err = SaveYamlFile(configFullPath, configYaml)
 	if err != nil {
 		return fmt.Errorf("failed to save config: %w", err)
 	}
@@ -244,48 +268,16 @@ func InitRunnable(isNewRunnable bool) error {
 	return nil
 }
 
-func SaveRunnableInstance(currRunnable *types.RunnableFile) error {
-	runnablePath, err := GetRunnablePath()
+func SaveYamlFile(path string, data []byte) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
-
-	yamlRunnable, err := yamlutil.ObjectToYaml(*currRunnable)
-	if err != nil {
+	if _, err := f.Write(data); err != nil {
 		return err
-	}
-	f, err := os.OpenFile(runnablePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if _, err := f.Write(yamlRunnable); err != nil {
-		log.Fatal(err)
 	}
 	if err := f.Close(); err != nil {
-		log.Fatal(err)
-	}
-
-	return nil
-}
-
-func SaveConfigInstance(currConfig *types.ConfigFile) error {
-	configPath, err := GetDefaultFolderPath()
-	if err != nil {
 		return err
-	}
-	yamlConfig, err := yamlutil.ObjectToYaml(*currConfig)
-	if err != nil {
-		return err
-	}
-	f, err := os.OpenFile(filepath.Join(configPath, ConfigFileName), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	if _, err := f.Write(yamlConfig); err != nil {
-		log.Fatal(err)
-	}
-	if err := f.Close(); err != nil {
-		log.Fatal(err)
 	}
 	return nil
 }

@@ -28,12 +28,12 @@ func GetHomeDir() (string, error) {
 	}
 	u, err := user.Current()
 	if err != nil {
-		return u.HomeDir, err
+		return "", fmt.Errorf("failed to get current user: %w", err)
 	}
 	if c.Debug {
 		fmt.Println("Getting env from user.Current()")
 	}
-	return "", err
+	return u.HomeDir, nil
 }
 
 func IsExist(path string) bool {

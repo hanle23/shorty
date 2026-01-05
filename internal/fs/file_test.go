@@ -98,11 +98,16 @@ func TestCreateDir(t *testing.T) {
 }
 
 func TestCreateDirWithInvalidPath(t *testing.T) {
-	// Test creating directory with invalid path
-	invalidPath := filepath.Join(t.TempDir(), "invalid", "path", "with", "special", "chars", "\\/*?")
+	tempDir := t.TempDir()
+	tempFile := filepath.Join(tempDir, "file.txt")
+	if err := os.WriteFile(tempFile, []byte("test"), 0644); err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+
+	invalidPath := filepath.Join(tempFile, "subdir")
 	err := fs.CreateDir(invalidPath, true)
 	if err == nil {
-		t.Error("CreateDir() should fail with invalid path")
+		t.Error("CreateDir() should fail when trying to create directory inside a file")
 	}
 }
 

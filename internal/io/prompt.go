@@ -41,8 +41,8 @@ func UIntPrompt(prompt string, defaultValue uint32) uint32 {
 		os.Exit(1)
 	}
 	value, err := strconv.Atoi(input)
-	if err == nil {
-		fmt.Println("Select number is invalid, set setting to default value: ", err)
+	if err != nil {
+		fmt.Println("Input is invalid, set setting to default value: ", err)
 		return defaultValue
 	}
 	return uint32(value)

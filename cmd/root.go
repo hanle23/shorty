@@ -66,33 +66,6 @@ Use 'shorty script <name>' to explicitly run the script in case of collision.`,
 		},
 	}
 
-	runCmd = &cobra.Command{
-		Use:   "run <name> [args...]",
-		Short: "Run a shortcut or script (shortcut takes precedence)",
-		Args:  cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			name := args[0]
-			passedArgs := args[1:]
-
-			runnables, err := config.GetRunnable()
-			if err != nil {
-				return fmt.Errorf("failed to load runnables: %w", err)
-			}
-
-			// Try shortcut first
-			if shortcut, exists := runnables.Shortcuts[name]; exists {
-				return executeShortcut(&shortcut, passedArgs)
-			}
-
-			// Fall back to script
-			if script, exists := runnables.Scripts[name]; exists {
-				return executeScript(&script, passedArgs)
-			}
-
-			return fmt.Errorf("no shortcut or script found with name: %s", name)
-		},
-	}
-
 	shortcutCmd = &cobra.Command{
 		Use:     "shortcut <name> [args...]",
 		Aliases: []string{"sc"},
@@ -190,7 +163,6 @@ func init() {
 	viper.BindPFlag("config", rootCmd.PersistentFlags().Lookup("config"))
 	viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
 
-	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(shortcutCmd)
 	rootCmd.AddCommand(scriptCmd)
 }
