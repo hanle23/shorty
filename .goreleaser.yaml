@@ -18,26 +18,29 @@ builds:
       - -s -w -X main.version={{.Version}}
 
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     name_template: >-
       {{ .ProjectName }}_
       {{- .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else }}{{ .Arch }}{{ end }}
 
-brews:
+homebrew_casks:
   - repository:
       owner: hanle23
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
-    directory: Formula
     homepage: "https://github.com/hanle23/shorty"
     description: "CLI tool to manage and run shortcuts and scripts"
     license: "GPL-3.0"
-    test: |
-      system "#{bin}/shorty", "--help"
-    install: |
-      bin.install "shorty"
+    url:
+      verified: github.com/hanle23/shorty
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/shorty"]
+          end
 
 checksum:
   name_template: 'checksums.txt'
