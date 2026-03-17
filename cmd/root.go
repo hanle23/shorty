@@ -125,7 +125,15 @@ func executeShortcut(shortcut *types.Shortcut, extraArgs []string) error {
 		fmt.Printf("Executing shortcut: %s %s\n", shortcut.Package_name, strings.Join(allArgs, " "))
 	}
 
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return fmt.Errorf("shortcut '%s' (%s) exited with code %d",
+				shortcut.Shortcut_name, shortcut.Package_name, exitErr.ExitCode())
+		}
+		return fmt.Errorf("shortcut '%s' failed to run '%s': %w",
+			shortcut.Shortcut_name, shortcut.Package_name, err)
+	}
+	return nil
 }
 
 func executeScript(script *types.Script, extraArgs []string) error {
@@ -143,7 +151,19 @@ func executeScript(script *types.Script, extraArgs []string) error {
 		fmt.Printf("Executing script: %s\n", scriptCmd)
 	}
 
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			return fmt.Errorf("script '%s' exited with code %d",
+				script.Package_name, exitErr.ExitCode())
+		}
+		return fmt.Errorf("script '%s' failed to run: %w",
+			script.Package_name, err)
+	}
+	return nil
+}
+
+func SetVersion(v string) {
+	rootCmd.Version = v
 }
 
 func Execute() {

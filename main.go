@@ -7,6 +7,9 @@ import (
 	"github.com/hanle23/shorty/cmd"
 )
 
+var version = "dev"
+
 func main() {
+	cmd.SetVersion(version)
 	cmd.Execute()
 }

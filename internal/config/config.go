@@ -180,8 +180,7 @@ func SetRunnableDir(dir string) error {
 	if err != nil {
 		return fmt.Errorf("failed to get default folder path: %w", err)
 	}
-	isExist := fs.IsExist(dir)
-	if !isExist {
+	if !fs.IsExist(dir) {
 		fmt.Println("Directory does not exist, creating...", dir)
 		err := fs.CreateDir(dir, false)
 		if err != nil {
@@ -193,7 +192,7 @@ func SetRunnableDir(dir string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load config: %w", err)
 	}
-	config.RunnablePath = dir
+	config.RunnablePath = filepath.Join(dir, RunnableFileName)
 	configYaml, err := yamlutil.ObjectToYaml(*config)
 	if err != nil {
 		return fmt.Errorf("failed to convert config to yaml: %w", err)
@@ -206,65 +205,82 @@ func SetRunnableDir(dir string) error {
 	return nil
 }
 
-func InitConfig() error {
-	config, _ := LoadConfig()
-	if config != nil {
-		shouldOverride := io.YesNoPrompt("Found an existing config file, do you want to override this? (y/n)")
-		if !shouldOverride {
-			return nil
-		}
-	}
+func InitFlow() error {
 	defaultFolderPath, err := GetDefaultFolderPath()
 	if err != nil {
 		return fmt.Errorf("failed to get default folder path: %w", err)
 	}
-	defaultRunnablePath := filepath.Join(defaultFolderPath, RunnableFileName)
-	emptyConfig, err := GetEmptyConfigObject(defaultRunnablePath)
-	if err != nil {
-		return fmt.Errorf("failed to get empty config object: %w", err)
+	configPath := filepath.Join(defaultFolderPath, ConfigFileName)
+
+	if fs.IsExist(configPath) {
+		shouldReset := io.YesNoPrompt("Found existing configuration. Reset config and runnables to original state? (y/n)")
+		if !shouldReset {
+			fmt.Println("Init cancelled.")
+			return nil
+		}
 	}
-	configYaml, err := yamlutil.ObjectToYaml(*emptyConfig)
-	if err != nil {
-		return fmt.Errorf("failed to convert config to yaml: %w", err)
+
+	if err := initConfig(); err != nil {
+		return fmt.Errorf("failed to initialize config: %w", err)
 	}
-	configFullPath := filepath.Join(defaultFolderPath, ConfigFileName)
-	err = SaveYamlFile(configFullPath, configYaml)
-	if err != nil {
-		return fmt.Errorf("failed to save config: %w", err)
+	fmt.Printf("Config initialized: %s\n", configPath)
+
+	runnablePath := filepath.Join(defaultFolderPath, RunnableFileName)
+	if err := initRunnable(); err != nil {
+		return fmt.Errorf("failed to initialize runnables: %w", err)
 	}
+	fmt.Printf("Runnables initialized: %s\n", runnablePath)
+
+	fmt.Println("Initialization complete.")
 	return nil
 }
 
-func InitRunnable(isNewRunnable bool) error {
-	currRunnableDir, err := GetRunnablePath()
+func initConfig() error {
+	defaultFolderPath, err := GetDefaultFolderPath()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get default folder path: %w", err)
 	}
-	isExist := fs.IsExist(currRunnableDir)
-	if !isNewRunnable && isExist {
-		shouldOverride := io.YesNoPrompt(fmt.Sprintf("Found an existing file or directory (%s), do you want to override this? (y/n)?", currRunnableDir))
-		if !shouldOverride {
-			return nil
+	if err := os.MkdirAll(defaultFolderPath, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %w", err)
+	}
+	defaultRunnablePath := filepath.Join(defaultFolderPath, RunnableFileName)
+	emptyConfig, err := GetEmptyConfigObject(defaultRunnablePath)
+	if err != nil {
+		return fmt.Errorf("failed to create default config: %w", err)
+	}
+	configYaml, err := yamlutil.ObjectToYaml(*emptyConfig)
+	if err != nil {
+		return fmt.Errorf("failed to serialize config: %w", err)
+	}
+	configFullPath := filepath.Join(defaultFolderPath, ConfigFileName)
+	if err := SaveYamlFile(configFullPath, configYaml); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+	configInstance = nil
+	return nil
+}
+
+func initRunnable() error {
+	runnablePath, err := GetRunnablePath()
+	if err != nil {
+		return fmt.Errorf("failed to get runnable path: %w", err)
+	}
+	if runnablePath == "" {
+		defaultFolderPath, err := GetDefaultFolderPath()
+		if err != nil {
+			return fmt.Errorf("failed to get default folder path: %w", err)
 		}
+		runnablePath = filepath.Join(defaultFolderPath, RunnableFileName)
 	}
-	newRunnableDir, err := GetDefaultFolderPath()
+	emptyRunnable := GetEmptyRunnableObject()
+	runnableYaml, err := yamlutil.ObjectToYaml(*emptyRunnable)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to serialize runnables: %w", err)
 	}
-	shouldUseDefault := io.YesNoPrompt(fmt.Sprintf("Do you want to use the default path? (%s) (y/n)?", newRunnableDir))
-	if !shouldUseDefault {
-		newRunnableDir = io.CustomNewPathPrompt(newRunnableDir)
-		if newRunnableDir == "" {
-			fmt.Println("Empty path, exiting...")
-			return nil
-		}
+	if err := SaveYamlFile(runnablePath, runnableYaml); err != nil {
+		return fmt.Errorf("failed to write runnables file: %w", err)
 	}
-	fmt.Println("Setting new path...", newRunnableDir)
-	err = SetRunnableDir(newRunnableDir)
-	if err != nil {
-		return fmt.Errorf("failed to set new path: %w", err)
-	}
-	fmt.Println("Finished setting new path...")
+	RunnableInstance = nil
 	return nil
 }
 
